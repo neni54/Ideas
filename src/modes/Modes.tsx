@@ -1,11 +1,13 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect } from 'react';
-import { speak } from '../audio/speech';
-import { Highlight, SpeakBtn } from '../components/ExpressionCard';
+import { play } from '../audio/voice';
+import { Highlight } from '../components/ExpressionCard';
+import { Speak, toneFor } from '../components/Speak';
 import { Icon } from '../components/ui';
 import { PACK_BY_ID, lineOf, plain, splitChunk } from '../data/content';
 import { INTENTS } from '../data/meta';
 import type { Challenge, Option } from '../engine/challenges';
+import { useGame } from '../store/game';
 
 export interface ModeProps {
   c: Challenge;
@@ -55,7 +57,7 @@ export function MeaningView(p: ModeProps) {
         <blockquote>
           <Highlight en={p.c.x.en} />
         </blockquote>
-        <SpeakBtn text={plain(p.c.x.en)} />
+        <Speak clips={[{ text: plain(p.c.x.en), tone: toneFor(p.c.x) }]} />
       </figure>
       <p className="ask">¿Qué significa de verdad?</p>
       <OptionList {...p} />
@@ -74,7 +76,7 @@ export function SarcasmView(p: ModeProps) {
       </div>
       <figure className="quote quote-line">
         <blockquote>“{plain(lineOf(c.x))}”</blockquote>
-        <SpeakBtn text={plain(lineOf(c.x))} />
+        <Speak clips={[{ text: plain(lineOf(c.x)), tone: toneFor(c.x) }]} />
       </figure>
       <p className="ask">¿En qué tono lo dice?</p>
       <div className="tones">
@@ -123,7 +125,7 @@ export function ReplyView(p: ModeProps) {
         <p className="chat-context">{c.x.scene}</p>
         <div className="msg in">
           {c.x.cue[0]}
-          <SpeakBtn text={c.x.cue[0]} label={false} />
+          <Speak clips={[{ text: c.x.cue[0], tone: 'casual', voice: 'partner' }]} slowButton={false} size="sm" />
         </div>
         <AnimatePresence>
           {picked && (
@@ -163,7 +165,7 @@ export function DetectiveView(p: ModeProps) {
         <div className="case-row">
           <span className="scene-label">La prueba</span>
           <p className="case-quote">
-            <span>“{plain(lineOf(p.c.x))}”</span> <SpeakBtn text={plain(lineOf(p.c.x))} label={false} />
+            <span>“{plain(lineOf(p.c.x))}”</span> <Speak clips={[{ text: plain(lineOf(p.c.x)), tone: toneFor(p.c.x) }]} size="sm" />
           </p>
         </div>
       </div>
@@ -245,7 +247,12 @@ export function BattleView(p: ModeProps) {
 export function ModeView(p: ModeProps) {
   useEffect(() => {
     if (p.c.mode === 'sarcasm' || p.c.mode === 'reply') {
-      const t = setTimeout(() => speak(p.c.mode === 'reply' ? p.c.x.cue[0] : plain(lineOf(p.c.x))), 350);
+      // Auto-play only when the user enabled it; the AI voice is cached, so repeats are free.
+      if (!useGame.getState().settings.voice) return;
+      const t = setTimeout(
+        () => play([p.c.mode === 'reply' ? { text: p.c.x.cue[0], tone: 'casual', voice: 'partner' } : { text: plain(lineOf(p.c.x)), tone: toneFor(p.c.x) }]),
+        350,
+      );
       return () => clearTimeout(t);
     }
   }, [p.c]);

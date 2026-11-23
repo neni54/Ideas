@@ -1,8 +1,9 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { speak } from '../audio/speech';
+import { play as playVoice, stop as stopVoice } from '../audio/voice';
 import { sfx } from '../audio/sfx';
-import { Highlight, SpeakBtn } from '../components/ExpressionCard';
+import { Highlight } from '../components/ExpressionCard';
+import { Speak, toneFor } from '../components/Speak';
 import { Bar, Btn, Icon, Sheet } from '../components/ui';
 import { PACK_BY_ID, plain } from '../data/content';
 import { INTENT_LABEL, MODE_BY_ID } from '../data/meta';
@@ -62,6 +63,7 @@ export function Play() {
     setPicked(null);
     setHidden(new Set());
   }, [c?.uid]);
+  useEffect(() => () => stopVoice(), []);
 
   const finish = useCallback(() => {
     const a = acc.current;
@@ -95,7 +97,7 @@ export function Play() {
         }
       }
       setPicked(o);
-      setTimeout(() => speak(plain(c.x.en)), 250);
+      if (useGame.getState().settings.voice) playVoice([{ text: plain(c.x.en), tone: toneFor(c.x) }]);
     },
     [c, picked, combo, store, diff],
   );
@@ -200,7 +202,7 @@ export function Play() {
                 <span>
                   <Highlight en={c.x.en} />
                 </span>
-                <SpeakBtn text={plain(c.x.en)} label={false} />
+                <Speak clips={[{ text: plain(c.x.en), tone: toneFor(c.x) }]} size="sm" />
               </div>
               <p className="verdict-es">{c.x.es}</p>
             </div>

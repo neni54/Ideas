@@ -2,3 +2,8 @@ node_modules
 dist
 dist-single
 *.log
+.env
+.env.*
+!.env.example
+.cache
+tsconfig.tsbuildinfo

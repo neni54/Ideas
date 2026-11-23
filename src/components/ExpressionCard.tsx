@@ -1,30 +1,14 @@
 import { useMemo, useState } from 'react';
-import { speak } from '../audio/speech';
+import { play } from '../audio/voice';
 import { sfx } from '../audio/sfx';
 import { ALL, PACK_BY_ID, lineOf, plain } from '../data/content';
 import { INTENT_LABEL, TAG_LABEL } from '../data/meta';
 import type { Expression } from '../data/types';
 import { shuffle } from '../engine/date';
 import { useGame } from '../store/game';
+import { Pronounce } from './Pronounce';
+import { Speak, toneFor } from './Speak';
 import { Dots, Icon, Sheet } from './ui';
-
-export function SpeakBtn({ text, label = true }: { text: string; label?: boolean }) {
-  const [slow, setSlow] = useState(false);
-  return (
-    <button
-      className="speak"
-      onClick={(e) => {
-        e.stopPropagation();
-        speak(text, { force: true, slow });
-        setSlow(!slow);
-      }}
-      aria-label={slow ? 'Escuchar despacio' : 'Escuchar'}
-    >
-      <Icon name="volume" size={17} />
-      {label && <span>{slow ? '0.7×' : '1×'}</span>}
-    </button>
-  );
-}
 
 export function Highlight({ en }: { en: string }) {
   const parts = en.split(/(\[[^\]]+\])/);
@@ -94,7 +78,7 @@ export function ExpressionBody({ x, withChallenge = true }: { x: Expression; wit
           <dt>Otro ejemplo</dt>
           <dd>
             <span className="ex-en">
-              {x.ex[0]} <SpeakBtn text={x.ex[0]} label={false} />
+              {x.ex[0]} <Speak clips={[{ text: x.ex[0], tone: toneFor(x) }]} size="sm" />
             </span>
             <span className="ex-es">{x.ex[1]}</span>
           </dd>
@@ -106,6 +90,30 @@ export function ExpressionBody({ x, withChallenge = true }: { x: Expression; wit
           </dd>
         </div>
       </dl>
+      <div className="convo">
+        <div className="label">La conversación</div>
+        <p className="convo-line">
+          <span className="who">Them</span> {x.cue[0]}
+        </p>
+        <p className="convo-line you">
+          <span className="who">You</span> {plain(lineOf(x))}
+        </p>
+        <button
+          className="btn btn-secondary btn-wide"
+          onClick={() =>
+            play(
+              [
+                { text: x.cue[0], tone: 'casual', voice: 'partner' },
+                { text: plain(lineOf(x)), tone: toneFor(x) },
+              ],
+              'Conversación completa',
+            )
+          }
+        >
+          <Icon name="chat" size={16} /> Escuchar la conversación
+        </button>
+      </div>
+      <Pronounce target={plain(lineOf(x))} tone={toneFor(x)} />
       {withChallenge && <MiniChallenge x={x} />}
     </div>
   );
@@ -113,7 +121,7 @@ export function ExpressionBody({ x, withChallenge = true }: { x: Expression; wit
 
 /** Global expression sheet, opened from anywhere with openExpression(id). */
 export function ExpressionSheet() {
-  const { openX, openExpression, cards, toggleFav, savePhrase } = useGame();
+  const { openX, openExpression, cards, toggleFav, savePhrase, openTranslator } = useGame();
   const x = openX ? ALL[openX] : null;
   const card = x ? cards[x.id] : undefined;
   return (
@@ -128,9 +136,12 @@ export function ExpressionSheet() {
           </h2>
           <div className="xcard-es-row">
             <p className="xcard-es">{x.es}</p>
-            <SpeakBtn text={plain(x.en)} />
+            <Speak clips={[{ text: plain(x.en), tone: toneFor(x) }]} label={plain(x.en)} />
           </div>
           <ExpressionBody x={x} />
+          <button className="link" onClick={() => openTranslator(plain(lineOf(x)))}>
+            <Icon name="translate" size={15} /> Analizar con el traductor IA
+          </button>
           <div className="xcard-foot">
             {card ? (
               <>

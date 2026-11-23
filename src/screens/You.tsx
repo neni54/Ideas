@@ -5,6 +5,7 @@ import { ACHIEVEMENTS, MODES, titleFor } from '../data/meta';
 import { dayKey } from '../engine/date';
 import { levelFromXp } from '../engine/progression';
 import { masteredCount } from '../engine/srs';
+import { useServices } from '../services/api';
 import { useGame } from '../store/game';
 import { weekDays } from './Today';
 
@@ -234,10 +235,16 @@ export function Profile() {
             <i />
           </label>
           <label className="toggle" htmlFor="set-voice">
-            <span>Leer en voz alta las frases en inglés</span>
+            <span>Reproducir la frase en inglés al responder</span>
             <input id="set-voice" type="checkbox" checked={s.settings.voice} onChange={() => s.toggleSetting('voice')} />
             <i />
           </label>
+          <label className="toggle" htmlFor="set-fallback">
+            <span>Si la voz IA falla, usar la voz del dispositivo</span>
+            <input id="set-fallback" type="checkbox" checked={s.settings.browserVoiceFallback} onChange={() => s.toggleSetting('browserVoiceFallback')} />
+            <i />
+          </label>
+          <ServiceStatus />
           <button className="danger-link" onClick={() => setConfirm(true)}>
             Borrar todo el progreso
           </button>
@@ -261,6 +268,30 @@ export function Profile() {
           </Btn>
         </div>
       </Sheet>
+    </div>
+  );
+}
+
+function ServiceStatus() {
+  const { status, error, loaded } = useServices();
+  if (!loaded) return null;
+  const rows: [string, { ready: boolean; missing: string | null } | undefined, string][] = [
+    ['Traductor IA', status?.translate, status?.translate.provider === 'openai' ? 'OpenAI' : 'Claude'],
+    ['Voz IA en inglés', status?.tts, status?.tts.model ?? ''],
+    ['Reconocimiento de voz', status?.stt, status?.stt.model ?? ''],
+  ];
+  return (
+    <div className="services">
+      <div className="label">Servicios de IA</div>
+      {!status && <p className="note">{error}</p>}
+      {status &&
+        rows.map(([name, st, detail]) => (
+          <p key={name} className={`svc ${st?.ready ? 'ok' : 'ko'}`}>
+            <i />
+            <span>{name}</span>
+            <small>{st?.ready ? `activo · ${detail}` : `sin configurar · falta ${st?.missing}`}</small>
+          </p>
+        ))}
     </div>
   );
 }

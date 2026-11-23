@@ -1,7 +1,8 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { sfx } from '../audio/sfx';
-import { Highlight, SpeakBtn } from '../components/ExpressionCard';
+import { Highlight } from '../components/ExpressionCard';
+import { Speak, toneFor } from '../components/Speak';
 import { Bar, Btn, Dots, Icon, Ring } from '../components/ui';
 import { plain } from '../data/content';
 import { difficulty } from '../engine/progression';
@@ -217,7 +218,7 @@ export function Memory() {
           <div className="face back">
             <div className="face-meta">
               <span className={`lvl lvl-${x.level}`}>{x.level}</span>
-              <SpeakBtn text={plain(x.en)} />
+              <Speak clips={[{ text: plain(x.en), tone: toneFor(x) }]} />
             </div>
             <p className="face-es">{x.es}</p>
             <p className="face-gist">{x.gist}</p>

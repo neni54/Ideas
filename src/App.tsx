@@ -1,6 +1,9 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect } from 'react';
 import { ExpressionSheet } from './components/ExpressionCard';
+import { AudioBar } from './components/Speak';
+import { Translate } from './screens/Translate';
+import { useServices } from './services/api';
 import { BottomNav, Toasts } from './components/ui';
 import { Games, Library, PackSheet } from './screens/Browse';
 import { Memory, QuickFire } from './screens/Drills';
@@ -18,6 +21,7 @@ export default function App() {
   const runId = useGame((s) => s.runId);
 
   useEffect(() => {
+    useServices.getState().load();
     newDay();
     const onFocus = () => newDay();
     window.addEventListener('focus', onFocus);
@@ -37,6 +41,7 @@ export default function App() {
     library: <Library />,
     games: <Games />,
     phrases: <Phrases />,
+    translate: <Translate />,
     profile: <Profile />,
     play: <Play key={runId} />,
     quickfire: <QuickFire key={runId} />,
@@ -52,6 +57,7 @@ export default function App() {
         </motion.div>
       </AnimatePresence>
       {!immersive && <BottomNav />}
+      <AudioBar />
       <ExpressionSheet />
       <PackSheet />
       <Toasts />

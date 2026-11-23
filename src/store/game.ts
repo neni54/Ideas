@@ -9,7 +9,7 @@ import { masteredCount, newCard, onAnswer, onGrade, INTERVALS, type Card } from 
 import type { Challenge } from '../engine/challenges';
 import { weeklyPack } from '../engine/session';
 
-export type Screen = 'today' | 'library' | 'games' | 'phrases' | 'profile' | 'play' | 'quickfire' | 'memory' | 'results';
+export type Screen = 'today' | 'library' | 'games' | 'phrases' | 'translate' | 'profile' | 'play' | 'quickfire' | 'memory' | 'results';
 export type RunMode = Challenge['mode'];
 
 export type Run =
@@ -88,7 +88,24 @@ interface Persisted {
   dailyDone: string | null;
   achievements: Record<string, number>;
   recent: boolean[];
-  settings: { sound: boolean; voice: boolean };
+  settings: Settings;
+  translations: TranslationEntry[];
+}
+
+export interface Settings {
+  sound: boolean;
+  /** Play the English line automatically after answering. */
+  voice: boolean;
+  /** Use the device voice when the AI voice is unavailable. */
+  browserVoiceFallback: boolean;
+}
+
+export interface TranslationEntry {
+  at: number;
+  text: string;
+  direction: 'auto' | 'en-es' | 'es-en';
+  context: string;
+  result: import('../services/api').Translation;
 }
 
 interface Volatile {
@@ -100,6 +117,7 @@ interface Volatile {
   toasts: Toast[];
   openX: string | null;
   openPack: string | null;
+  translatorDraft: string | null;
 }
 
 interface Actions {
@@ -119,7 +137,9 @@ interface Actions {
   openExpression: (id: string | null) => void;
   openPackSheet: (id: string | null) => void;
   dismissToast: (id: number) => void;
-  toggleSetting: (k: 'sound' | 'voice') => void;
+  toggleSetting: (k: keyof Settings) => void;
+  openTranslator: (text: string) => void;
+  saveTranslation: (e: TranslationEntry) => void;
   reset: () => void;
 }
 
@@ -156,7 +176,7 @@ function legacy(): Partial<Persisted> {
     const raw = safeStorage.getItem('lumora-save-v1');
     if (!raw || typeof raw !== 'string') return {};
     const s = JSON.parse(raw).state ?? {};
-    return { name: s.name ?? '', xp: s.xp ?? 0, streak: s.streak ?? 0, bestStreak: s.bestStreak ?? 0, lastPlayDay: s.lastPlayDay ?? null, settings: s.settings };
+    return { name: s.name ?? '', xp: s.xp ?? 0, streak: s.streak ?? 0, bestStreak: s.bestStreak ?? 0, lastPlayDay: s.lastPlayDay ?? null, settings: { sound: s.settings?.sound ?? true, voice: s.settings?.voice ?? true, browserVoiceFallback: true } };
   } catch {
     return {};
   }
@@ -182,14 +202,15 @@ const initial = (): Persisted => ({
   dailyDone: null,
   achievements: {},
   recent: [],
-  settings: { sound: true, voice: true },
+  settings: { sound: true, voice: true, browserVoiceFallback: true },
+  translations: [],
   ...legacy(),
 });
 
-const volatile = (): Volatile => ({ screen: 'today', tab: 'today', run: null, runId: 0, result: null, toasts: [], openX: null, openPack: null });
+const volatile = (): Volatile => ({ screen: 'today', tab: 'today', run: null, runId: 0, result: null, toasts: [], openX: null, openPack: null, translatorDraft: null });
 
 let toastId = 1;
-const TABS: Screen[] = ['today', 'library', 'games', 'phrases', 'profile'];
+const TABS: Screen[] = ['today', 'library', 'games', 'phrases', 'translate', 'profile'];
 
 export const playerLevel = (xp: number) => levelFromXp(xp).level;
 export const packMastery = (cards: Record<string, Card>, packId: string) => {
@@ -450,6 +471,8 @@ export const useGame = create<GameState>()(
         openPackSheet: (id) => set({ openPack: id }),
         dismissToast: (id) => set({ toasts: get().toasts.filter((t) => t.id !== id) }),
         toggleSetting: (k) => set({ settings: { ...get().settings, [k]: !get().settings[k] } }),
+        openTranslator: (text) => set({ translatorDraft: text, screen: 'translate', tab: 'translate', openX: null }),
+        saveTranslation: (e) => set({ translations: [e, ...get().translations.filter((t) => t.text !== e.text || t.direction !== e.direction)].slice(0, 12) }),
         reset: () => set({ ...initial(), ...volatile(), name: '', xp: 0, streak: 0, bestStreak: 0, lastPlayDay: null }),
       } as GameState;
     },
@@ -458,10 +481,15 @@ export const useGame = create<GameState>()(
       storage: createJSONStorage(() => safeStorage),
       partialize: (s) => {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { screen, tab, run, runId, result, toasts, openX, openPack, ...rest } = s;
+        const { screen, tab, run, runId, result, toasts, openX, openPack, translatorDraft, ...rest } = s;
         return Object.fromEntries(Object.entries(rest).filter(([, v]) => typeof v !== 'function')) as unknown as Persisted;
       },
-      merge: (persisted, current) => ({ ...current, ...(persisted as object), stats: { ...current.stats, ...((persisted as Persisted)?.stats ?? {}) } }),
+      merge: (persisted, current) => ({
+        ...current,
+        ...(persisted as object),
+        stats: { ...current.stats, ...((persisted as Persisted)?.stats ?? {}) },
+        settings: { ...current.settings, ...((persisted as Persisted)?.settings ?? {}) },
+      }),
     },
   ),
 );

@@ -100,3 +100,26 @@ Onboarding (propuesta de valor → intereses → nombre)
         Frases ─▶ Buscador + filtros ─▶ Ficha de expresión (con mini-reto)
   Juego ─▶ Veredicto ─▶ … ─▶ Resultados ─▶ (Subida de nivel) ─▶ pestaña de origen
 ```
+
+---
+
+## 7. Servicios de IA (v2.1)
+
+```
+Navegador ──/api/translate──▶ server/index.mjs ──▶ Claude Opus 5.5 (o OpenAI) · salida JSON con esquema
+          ──/api/tts───────▶                  ──▶ OpenAI gpt-4o-mini-tts · voz + instrucciones de tono
+          ──/api/transcribe▶                  ──▶ OpenAI gpt-4o-transcribe
+          ──/api/status────▶ qué está configurado (sin revelar claves)
+```
+
+- **Por qué OpenAI para la voz:** `gpt-4o-mini-tts` acepta instrucciones de interpretación
+  (sarcasmo, coqueteo, frustración, ritmo lento para aprender) en cada petición, suena natural en
+  inglés estadounidense, es barato y la misma clave sirve para el reconocimiento de voz.
+  ElevenLabs tiene voces excelentes pero exigiría una segunda clave para la transcripción y un
+  control de tono menos directo; el adaptador está aislado en `server/providers.mjs` para poder
+  cambiarlo.
+- **Errores:** cada fallo se traduce a un código (`not_configured`, `provider_auth`,
+  `provider_unreachable`, `rate_limited`, `bad_output`, `refused`) con un mensaje en español
+  que la interfaz muestra tal cual. Nada falla en silencio.
+- **Coste:** caché de audio en disco y memoria, deduplicación de peticiones simultáneas,
+  límites por IP y longitud máxima de texto.

@@ -26,6 +26,11 @@ const PATHS: Record<string, ReactNode> = {
   clock: <><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></>,
   sparkle: <path d="M12 3c.6 4.2 2.8 6.4 7 7-4.2.6-6.4 2.8-7 7-.6-4.2-2.8-6.4-7-7 4.2-.6 6.4-2.8 7-7z" />,
   bulb: <><path d="M9 17h6M10 20.5h4" /><path d="M8.5 13.5A5.5 5.5 0 1115.5 13.5c-.9.8-1.5 1.8-1.5 3h-4c0-1.2-.6-2.2-1.5-3z" /></>,
+  pause: <><rect x="6.5" y="5" width="3.6" height="14" rx="1" fill="currentColor" stroke="none" /><rect x="13.9" y="5" width="3.6" height="14" rx="1" fill="currentColor" stroke="none" /></>,
+  translate: <><path d="M4 5h9M8.5 3v2c0 4-2 7-5 9" /><path d="M6 9c1.5 2.5 3.5 4 6 5" /><path d="M12.5 21l4-9 4 9M14 18h5" /></>,
+  mic: <><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5.5 11a6.5 6.5 0 0013 0M12 17.5V21" /></>,
+  stop: <rect x="6.5" y="6.5" width="11" height="11" rx="2" />,
+  chat: <path d="M4 5h16v11H9l-5 4z" />,
   refresh: <><path d="M20 11a8 8 0 00-14.5-4.5L4 8.5" /><path d="M4 4v4.5h4.5" /><path d="M4 13a8 8 0 0014.5 4.5L20 15.5" /><path d="M20 20v-4.5h-4.5" /></>,
 };
 
@@ -184,6 +189,7 @@ const NAV: { id: Screen; label: string }[] = [
   { id: 'library', label: 'Colecciones' },
   { id: 'games', label: 'Juegos' },
   { id: 'phrases', label: 'Frases' },
+  { id: 'translate', label: 'Traductor' },
   { id: 'profile', label: 'Perfil' },
 ];
 
