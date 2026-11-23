@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware';
+import { createJSONStorage, persist } from 'zustand/middleware';
+import { cloudStorage, localStore } from '../services/cloud';
 import { ALL, PACKS } from '../data/content';
 import { ACHIEVEMENTS, type MissionKind, type Mode } from '../data/meta';
 import { dayKey, daysBetween } from '../engine/date';
@@ -145,35 +146,10 @@ interface Actions {
 
 export type GameState = Persisted & Volatile & Actions;
 
-const memory = new Map<string, string>();
-const safeStorage: StateStorage = {
-  getItem: (k) => {
-    try {
-      return localStorage.getItem(k);
-    } catch {
-      return memory.get(k) ?? null;
-    }
-  },
-  setItem: (k, v) => {
-    try {
-      localStorage.setItem(k, v);
-    } catch {
-      memory.set(k, v);
-    }
-  },
-  removeItem: (k) => {
-    try {
-      localStorage.removeItem(k);
-    } catch {
-      memory.delete(k);
-    }
-  },
-};
-
 /** Carries name, XP and streak over from the previous version of the game. */
 function legacy(): Partial<Persisted> {
   try {
-    const raw = safeStorage.getItem('lumora-save-v1');
+    const raw = localStore.getItem('lumora-save-v1');
     if (!raw || typeof raw !== 'string') return {};
     const s = JSON.parse(raw).state ?? {};
     return { name: s.name ?? '', xp: s.xp ?? 0, streak: s.streak ?? 0, bestStreak: s.bestStreak ?? 0, lastPlayDay: s.lastPlayDay ?? null, settings: { sound: s.settings?.sound ?? true, voice: s.settings?.voice ?? true, browserVoiceFallback: true } };
@@ -478,7 +454,7 @@ export const useGame = create<GameState>()(
     },
     {
       name: 'subtext-save-v1',
-      storage: createJSONStorage(() => safeStorage),
+      storage: createJSONStorage(() => cloudStorage),
       partialize: (s) => {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { screen, tab, run, runId, result, toasts, openX, openPack, translatorDraft, ...rest } = s;

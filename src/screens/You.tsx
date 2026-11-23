@@ -6,6 +6,8 @@ import { dayKey } from '../engine/date';
 import { levelFromXp } from '../engine/progression';
 import { masteredCount } from '../engine/srs';
 import { useServices } from '../services/api';
+import { useCloud, watchTesters, type TesterRow } from '../services/cloud';
+import { useEffect } from 'react';
 import { useGame } from '../store/game';
 import { weekDays } from './Today';
 
@@ -155,6 +157,9 @@ export function Profile() {
         </div>
       </div>
 
+      <CloudStatus />
+      <TestersPanel />
+
       <section className="block">
         <h3 className="block-title">Últimos 7 días</h3>
         <div className="week week-lg">
@@ -293,5 +298,83 @@ function ServiceStatus() {
           </p>
         ))}
     </div>
+  );
+}
+
+function ago(ts: number | null) {
+  if (!ts) return '';
+  const m = Math.round((Date.now() - ts) / 60000);
+  if (m < 1) return 'hace un momento';
+  if (m < 60) return `hace ${m} min`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `hace ${h} h`;
+  return `hace ${Math.round(h / 24)} d`;
+}
+
+function CloudStatus() {
+  const { state, message, savedAt } = useCloud();
+  if (state === 'off') return null;
+  const label =
+    state === 'connecting'
+      ? 'Conectando con la nube…'
+      : state === 'saving'
+        ? 'Guardando…'
+        : state === 'synced'
+          ? `Progreso guardado en la nube${savedAt ? ' · ' + ago(savedAt) : ''}`
+          : state === 'local-only'
+            ? 'Solo se guarda en este navegador'
+            : 'Problema al guardar';
+  return (
+    <div className={`cloud cloud-${state}`} role="status">
+      <i />
+      <div>
+        <b>{label}</b>
+        {message && <small>{message}</small>}
+      </div>
+    </div>
+  );
+}
+
+function TestersPanel() {
+  const [rows, setRows] = useState<TesterRow[] | null>(null);
+  useEffect(() => {
+    let off: (() => void) | undefined;
+    let alive = true;
+    watchTesters((r) => alive && setRows(r)).then((u) => (alive ? (off = u) : u()));
+    return () => {
+      alive = false;
+      off?.();
+    };
+  }, []);
+  if (!rows) return null;
+  return (
+    <section className="block">
+      <h3 className="block-title">
+        Probadores <span className="muted">{rows.length}</span>
+      </h3>
+      {rows.length === 0 ? (
+        <p className="note">Aún nadie ha jugado. Cuando alguien con acceso juegue, aparecerá aquí su progreso.</p>
+      ) : (
+        <ul className="testers">
+          {rows.map((r) => (
+            <li key={r.id}>
+              <div className="tester-head">
+                <b>{r.name || r.heroName || 'Alguien'}</b>
+                <small>{ago(r.updatedAt)}</small>
+              </div>
+              <div className="tester-stats">
+                <span>Nv {r.level}</span>
+                <span>{r.xp} XP</span>
+                <span>{r.sessions} sesiones</span>
+                <span>{r.answered ? Math.round((r.correct / r.answered) * 100) : 0}% aciertos</span>
+                <span>{r.phrases} frases · {r.mastered} dominadas</span>
+                <span>racha {r.streak}</span>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="note">Solo tú y los editores veis esta lista. El progreso completo de cada persona es privado.</p>
+    </section>
   );
 }

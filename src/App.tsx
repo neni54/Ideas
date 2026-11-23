@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { ExpressionSheet } from './components/ExpressionCard';
 import { AudioBar } from './components/Speak';
 import { Translate } from './screens/Translate';
@@ -19,14 +19,37 @@ export default function App() {
   const screen = useGame((s) => s.screen);
   const newDay = useGame((s) => s.newDay);
   const runId = useGame((s) => s.runId);
+  const [hydrated, setHydrated] = useState(() => useGame.persist.hasHydrated());
 
   useEffect(() => {
+    if (hydrated) return;
+    const off = useGame.persist.onFinishHydration(() => setHydrated(true));
+    if (useGame.persist.hasHydrated()) setHydrated(true);
+    return off;
+  }, [hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
     useServices.getState().load();
     newDay();
     const onFocus = () => newDay();
     window.addEventListener('focus', onFocus);
     return () => window.removeEventListener('focus', onFocus);
-  }, [newDay]);
+  }, [newDay, hydrated]);
+
+  if (!hydrated)
+    return (
+      <div className="app">
+        <div className="screen center-screen loading-save">
+          <div className="wordmark">
+            Sub<span>text</span>
+          </div>
+          <p className="muted">
+            <span className="spin" /> Cargando tu progreso…
+          </p>
+        </div>
+      </div>
+    );
 
   if (!onboarded)
     return (
