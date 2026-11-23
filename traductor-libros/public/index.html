@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Traductor de libros</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <button class="brand" id="homeBtn" title="Biblioteca">📖 Traductor de libros</button>
+    <div class="book-info" id="bookInfo" hidden>
+      <strong id="bookTitle"></strong>
+      <div class="progress" title="Progreso total"><div id="progressBar"></div></div>
+      <span id="progressText" class="muted"></span>
+    </div>
+    <div class="actions" id="bookActions" hidden>
+      <select id="viewMode" title="Modo de lectura">
+        <option value="side">Lado a lado</option>
+        <option value="inter">Intercalado</option>
+        <option value="es">Solo español (👁 muestra el original)</option>
+        <option value="en">Solo inglés</option>
+      </select>
+      <button id="translateChapterBtn">Traducir capítulo</button>
+      <button id="translateAllBtn" class="primary">Traducir todo</button>
+      <div class="menu">
+        <button id="exportBtn">Exportar ▾</button>
+        <div class="menu-list" id="exportMenu" hidden>
+          <button data-export="epub">Libro en español (.epub)</button>
+          <button data-export="bilingual">Edición bilingüe (.html)</button>
+          <button data-export="spanish-html">Solo español (.html, imprimible a PDF)</button>
+        </div>
+      </div>
+    </div>
+    <button id="settingsBtn" title="Ajustes">⚙️</button>
+  </header>
+
+  <!-- Biblioteca / carga -->
+  <main id="libraryView" class="library">
+    <label class="dropzone" id="dropzone">
+      <input type="file" id="fileInput" accept=".epub,.pdf,application/epub+zip,application/pdf" hidden />
+      <div class="dz-icon">⬆️</div>
+      <div><strong>Sube tu libro en inglés</strong></div>
+      <div class="muted">Arrastra aquí un archivo EPUB o PDF, o haz clic para elegirlo</div>
+    </label>
+    <div id="loadStatus" class="muted"></div>
+    <h2>Tus libros</h2>
+    <ul id="bookList" class="book-list"></ul>
+  </main>
+
+  <!-- Lector bilingüe -->
+  <div id="readerView" class="reader" hidden>
+    <aside class="toc">
+      <div class="toc-head">Capítulos</div>
+      <ol id="tocList"></ol>
+    </aside>
+    <section class="pane">
+      <div class="col-heads" id="colHeads">
+        <div>Original (inglés)</div>
+        <div>Traducción (español) <span class="muted">— haz clic en un párrafo para corregirlo</span></div>
+      </div>
+      <div id="rows" class="rows"></div>
+      <div class="chapter-nav">
+        <button id="prevChap">← Capítulo anterior</button>
+        <button id="nextChap">Capítulo siguiente →</button>
+      </div>
+    </section>
+  </div>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <dialog id="settingsDlg">
+    <form method="dialog" class="settings">
+      <h2>Ajustes</h2>
+      <label id="apiKeyRow">Clave de API de Anthropic
+        <input type="password" id="apiKey" placeholder="sk-ant-…" autocomplete="off" />
+        <small class="muted">Solo se guarda en este navegador. No hace falta si el servidor ya tiene ANTHROPIC_API_KEY.</small>
+      </label>
+      <label>Modelo
+        <select id="model">
+          <option value="claude-opus-5-5">Claude Opus 5.5 — máxima calidad</option>
+          <option value="claude-sonnet-5-5">Claude Sonnet 5.5 — equilibrio</option>
+          <option value="claude-haiku-5-5">Claude Haiku 5.5 — más rápido y barato</option>
+        </select>
+      </label>
+      <label>Esfuerzo de razonamiento
+        <select id="effort">
+          <option value="low">Bajo (más rápido)</option>
+          <option value="medium">Medio (recomendado)</option>
+          <option value="high">Alto (más cuidadoso)</option>
+        </select>
+      </label>
+      <label>Variante del español
+        <select id="variant">
+          <option value="neutral">Español neutro</option>
+          <option value="es">España</option>
+          <option value="latam">Latinoamérica</option>
+        </select>
+      </label>
+      <label>Glosario y notas para este libro
+        <textarea id="glossary" rows="6" placeholder="Ej.:&#10;Hogwarts = Hogwarts (no traducir)&#10;the Shire = la Comarca&#10;Tratar de «tú» entre los protagonistas"></textarea>
+      </label>
+      <menu>
+        <button value="cancel">Cancelar</button>
+        <button value="save" class="primary" id="saveSettings">Guardar</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <script src="/vendor/jszip/jszip.min.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
