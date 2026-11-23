@@ -1,100 +1,133 @@
-import type { ExerciseType, Level, Phrase } from '../data/types';
-import { ALL_PHRASES, WORLD1, levelOfPhrase } from '../data/world1';
-import { shuffle } from './date';
-import { makeExercise, type Exercise } from './exercises';
-import { dueIds, type SrsCard } from './srs';
+import { ALL, ALL_LIST, PACKS, PACK_BY_ID, plain } from '../data/content';
+import { IN_RUN_MODES, type Mode } from '../data/meta';
+import type { Expression } from '../data/types';
+import { makeChallenge, type Challenge } from './challenges';
+import { seeded, shuffle } from './date';
+import { dueIds, type Card } from './srs';
 
-const MAX_ECHOES_IN_LEVEL = 3;
+type Diff = 0 | 1 | 2;
+type RunMode = Challenge['mode'];
 
-function weightedType(weights: Partial<Record<ExerciseType, number>>): ExerciseType {
-  const entries = Object.entries(weights) as [ExerciseType, number][];
-  const total = entries.reduce((s, [, w]) => s + w, 0);
-  let r = Math.random() * total;
-  for (const [t, w] of entries) {
-    if ((r -= w) <= 0) return t;
-  }
-  return entries[0][0];
-}
+const REVIEW_MODES: RunMode[] = ['meaning', 'natural', 'complete', 'reply'];
+const pickMode = (modes: RunMode[], avoid?: RunMode) => {
+  const pool = modes.filter((m) => m !== avoid);
+  return pool[Math.floor(Math.random() * pool.length)];
+};
 
-function typeWeights(level: Level, difficulty: 0 | 1 | 2) {
-  if (level.kind === 'boss') return { build: 4, fill: 3, choice: 2, dialogue: 3 };
-  if (level.n <= 2) return { choice: 5, fill: 2, build: 2, dialogue: 2 };
-  if (difficulty === 0) return { choice: 5, fill: 2, build: 1, dialogue: 2 };
-  if (difficulty === 2) return { choice: 1, fill: 3, build: 4, dialogue: 2 };
-  return { choice: 3, fill: 3, build: 3, dialogue: 2 };
-}
+export const unlockedPacks = (level: number) => PACKS.filter((p) => p.unlock <= level);
 
-/** Distractor pool: the phrase's level plus its neighbours. */
-export function poolFor(phrase: Phrase): Phrase[] {
-  const lvl = levelOfPhrase(phrase.id) ?? WORLD1.levels[0];
-  const idx = WORLD1.levels.indexOf(lvl);
-  return WORLD1.levels
-    .slice(Math.max(0, idx - 1), idx + 2)
-    .flatMap((l) => l.phrases);
-}
-
-export function buildLevelSession(
-  level: Level,
-  srs: Record<string, SrsCard>,
-  difficulty: 0 | 1 | 2,
-  now = Date.now(),
-): Exercise[] {
-  const weights = typeWeights(level, difficulty);
-  const speaker = level.character !== 'pip' ? level.character : undefined;
-  let lastType: ExerciseType | null = null;
-
-  const pick = (): ExerciseType => {
-    let t = weightedType(weights);
-    if (t === lastType) t = weightedType(weights); // avoid long runs of the same type
-    if (t === 'dialogue' && !speaker) t = 'choice';
-    lastType = t;
-    return t;
-  };
-
-  const main = level.phrases.map((p, i) => {
-    // Gentle start: the very first challenge of the game is always multiple choice.
-    const type = level.n === 1 && i < 2 ? 'choice' : pick();
-    return makeExercise(type, p, level.phrases, { difficulty, speaker });
-  });
-
-  const echoes = dueIds(srs, now)
-    .filter((id) => !id.startsWith(level.id + '-') && ALL_PHRASES[id])
-    .slice(0, level.kind === 'boss' ? 0 : MAX_ECHOES_IN_LEVEL)
-    .map((id) => {
-      const p = ALL_PHRASES[id];
-      return makeExercise(Math.random() < 0.5 ? 'choice' : 'build', p, poolFor(p), {
-        difficulty: Math.min(difficulty, 1) as 0 | 1,
-        isEcho: true,
-      });
-    });
-
-  // Spread echoes through the session (never as the very first challenge).
-  const out = main.slice();
-  echoes.forEach((e, i) => {
-    const pos = Math.min(out.length, 2 + Math.floor(((i + 1) * out.length) / (echoes.length + 1)));
-    out.splice(pos, 0, e);
-  });
+/** An episode: every expression of the pack twice in different modes, plus due reviews. */
+export function buildEpisode(packId: string, cards: Record<string, Card>, diff: Diff, now = Date.now()): Challenge[] {
+  const xs = shuffle(PACK_BY_ID[packId].expressions);
+  const modes = shuffle(IN_RUN_MODES as RunMode[]);
+  const round1 = xs.map((x, i) => makeChallenge(modes[i % modes.length], x, diff));
+  const round2 = shuffle(xs)
+    .slice(0, 4)
+    .map((x) => makeChallenge(pickMode(IN_RUN_MODES as RunMode[], round1.find((c) => c.x.id === x.id)?.mode), x, diff));
+  const reviews = dueIds(cards, now)
+    .filter((id) => ALL[id] && ALL[id].pack !== packId)
+    .slice(0, 2)
+    .map((id) => makeChallenge(pickMode(REVIEW_MODES), ALL[id], Math.min(diff, 1) as Diff, { isReview: true }));
+  const out = [...round1, ...round2];
+  reviews.forEach((r, i) => out.splice(3 + i * 4, 0, r));
   return out;
 }
 
-export function buildEchoSession(srs: Record<string, SrsCard>, now = Date.now()): Exercise[] {
-  const ids = dueIds(srs, now).filter((id) => ALL_PHRASES[id]).slice(0, 10);
-  return shuffle(ids).map((id) => {
-    const p = ALL_PHRASES[id];
-    const types: ExerciseType[] = ['choice', 'build', 'fill'];
-    return makeExercise(types[Math.floor(Math.random() * types.length)], p, poolFor(p), {
-      difficulty: 1,
-      isEcho: true,
-    });
-  });
+/** The daily 5-minute session: due reviews + new expressions + one surprise from a locked pack. */
+export function buildDaily(cards: Record<string, Card>, level: number, diff: Diff, now = Date.now()): Challenge[] {
+  const open = unlockedPacks(level).flatMap((p) => p.expressions);
+  const preferred = diff === 0 ? 'B1' : diff === 2 ? 'C1' : 'B2';
+  const due = dueIds(cards, now).filter((id) => ALL[id]).slice(0, 3).map((id) => ALL[id]);
+  const fresh = shuffle(open.filter((x) => !cards[x.id] && !due.includes(x)))
+    .sort((a, b) => Number(b.level === preferred) - Number(a.level === preferred))
+    .slice(0, 3);
+  const locked = ALL_LIST.filter((x) => PACK_BY_ID[x.pack].unlock > level && !cards[x.id]);
+  const surprise = locked.length ? [locked[Math.floor(Math.random() * locked.length)]] : [];
+  const used = new Set([...due, ...fresh, ...surprise].map((x) => x.id));
+  const filler = shuffle(open.filter((x) => !used.has(x.id))).slice(0, Math.max(0, 8 - used.size));
+
+  let last: RunMode | undefined;
+  const mk = (x: Expression, flags: Partial<Challenge> = {}) => {
+    const m = pickMode(flags.isReview ? REVIEW_MODES : (IN_RUN_MODES as RunMode[]), last);
+    last = m;
+    return makeChallenge(m, x, diff, flags);
+  };
+  const list = [
+    ...due.map((x) => mk(x, { isReview: true })),
+    ...fresh.map((x) => mk(x)),
+    ...filler.map((x) => mk(x)),
+  ];
+  const out = shuffle(list);
+  surprise.forEach((x) => out.splice(Math.min(out.length, 5), 0, mk(x, { isSurprise: true })));
+  return out.slice(0, 8);
 }
 
-export function retryOf(ex: Exercise, difficulty: 0 | 1 | 2): Exercise {
-  // A retry uses a different (usually easier) format, so it is not pure memorisation.
-  const type: ExerciseType = ex.type === 'build' ? 'choice' : 'build';
-  return makeExercise(type, ex.phrase, poolFor(ex.phrase), {
-    difficulty: Math.min(difficulty, 1) as 0 | 1,
-    isEcho: ex.isEcho,
-    isRetry: true,
-  });
+/** Focused practice of one mode, from unlocked packs (optionally one pack). */
+export function buildPractice(mode: RunMode, cards: Record<string, Card>, level: number, diff: Diff, packId?: string): Challenge[] {
+  const pool = packId ? PACK_BY_ID[packId].expressions : unlockedPacks(level).flatMap((p) => p.expressions);
+  // Weakest known first, then some new ones.
+  const known = shuffle(pool.filter((x) => cards[x.id])).sort((a, b) => cards[a.id].box - cards[b.id].box).slice(0, 5);
+  const fresh = shuffle(pool.filter((x) => !cards[x.id]));
+  const picked = shuffle([...known, ...fresh]).slice(0, 8);
+  if (mode === 'sarcasm') {
+    // Tone practice is more interesting with a majority of non-sincere lines.
+    picked.sort((a, b) => Number(b.intent !== 'sincere') - Number(a.intent !== 'sincere'));
+  }
+  return shuffle(picked.slice(0, 8)).map((x) => makeChallenge(mode, x, diff));
 }
+
+/* ───── Quick Fire ───── */
+
+export interface QuickItem {
+  id: string;
+  x: Expression;
+  kind: 'natural' | 'meaning';
+  line: string;
+  claim?: string;
+  truth: boolean;
+}
+
+export function buildQuickFire(level: number, count = 60): QuickItem[] {
+  const pool = unlockedPacks(level).flatMap((p) => p.expressions);
+  const out: QuickItem[] = [];
+  for (let i = 0; i < count; i++) {
+    const x = pool[Math.floor(Math.random() * pool.length)];
+    const truth = Math.random() < 0.5;
+    if (Math.random() < 0.5) {
+      out.push({ id: `q${i}`, x, kind: 'natural', line: truth ? plain(x.en) : x.calques[Math.floor(Math.random() * 2)], truth });
+    } else {
+      const lie = Math.random() < 0.5 ? x.literal : x.wrong[Math.floor(Math.random() * 2)];
+      out.push({ id: `q${i}`, x, kind: 'meaning', line: plain(x.en), claim: truth ? x.gist : lie, truth });
+    }
+  }
+  return out;
+}
+
+/* ───── Memory ───── */
+
+export function buildMemory(cards: Record<string, Card>, now = Date.now()): Expression[] {
+  const due = dueIds(cards, now).filter((id) => ALL[id]).slice(0, 12);
+  // Short on due cards: top up with the weakest ones so a session is worth opening.
+  const weakest = Object.entries(cards)
+    .filter(([id]) => ALL[id] && !due.includes(id))
+    .sort((a, b) => a[1].box - b[1].box || a[1].due - b[1].due)
+    .map(([id]) => id)
+    .slice(0, Math.max(0, 6 - due.length));
+  return [...due, ...weakest].map((id) => ALL[id]);
+}
+
+/* ───── Daily content ───── */
+
+export function phraseOfTheDay(day: string): Expression {
+  const r = seeded('potd-' + day)();
+  return ALL_LIST[Math.floor(r * ALL_LIST.length)];
+}
+
+export function weeklyPack(day: string, level: number) {
+  const d = new Date(day + 'T12:00:00');
+  const week = Math.floor((d.getTime() - new Date(d.getFullYear(), 0, 1).getTime()) / (7 * 86400000));
+  const open = unlockedPacks(level);
+  return open[Math.floor(seeded(`week-${d.getFullYear()}-${week}`)() * open.length)];
+}
+
+export type { Mode };

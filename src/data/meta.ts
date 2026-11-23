@@ -1,94 +1,94 @@
-// Characters, pets, items, skins, achievements and mission templates.
+import type { Intent, Tag } from './types';
 
-export interface Character {
-  id: string;
-  name: string;
-  role: string;
-  color: string;
+export type Mode = 'meaning' | 'sarcasm' | 'natural' | 'reply' | 'detective' | 'complete' | 'battle' | 'quickfire' | 'memory';
+
+export interface ModeInfo {
+  id: Mode;
+  title: string;
+  es: string;
+  desc: string;
+  glyph: string;
 }
 
-export const CHARACTERS: Record<string, Character> = {
-  pip: { id: 'pip', name: 'Pip', role: 'Espíritu farolillo', color: '#ffc94d' },
-  olmo: { id: 'olmo', name: 'Anciana Olmo', role: 'Sabia de la aldea', color: '#7fc8a9' },
-  mira: { id: 'mira', name: 'Mira', role: 'Mercader', color: '#ff8fab' },
-  bram: { id: 'bram', name: 'Bram', role: 'Herrero', color: '#ff9f5a' },
-  tito: { id: 'tito', name: 'Tito', role: 'Pescador', color: '#5ab8ff' },
-  luna: { id: 'luna', name: 'Luna', role: 'Exploradora', color: '#b69cff' },
-  grumble: { id: 'grumble', name: 'Gruñón', role: 'Trol del Puente', color: '#6f8f6a' },
-  morvena: { id: 'morvena', name: 'Morvena', role: 'Reina de la Bruma', color: '#8a6bd1' },
+export const MODES: ModeInfo[] = [
+  { id: 'meaning', title: 'What Does It Really Mean?', es: 'Qué significa de verdad', desc: 'Lo literal es una trampa. Encuentra el significado real.', glyph: '“ ”' },
+  { id: 'sarcasm', title: 'Catch the Sarcasm', es: 'Pilla el tono', desc: 'Sincero, sarcástico, pasivo-agresivo, coqueto… Lee el tono.', glyph: '~' },
+  { id: 'natural', title: 'Literal vs. Natural', es: 'Literal o nativo', desc: 'Elige cómo lo diría alguien nativo, no un traductor.', glyph: '≠' },
+  { id: 'reply', title: 'What Would You Say?', es: 'Qué dirías tú', desc: 'Te escriben. Elige la respuesta que suena natural.', glyph: '↩' },
+  { id: 'detective', title: 'Context Detective', es: 'Detective de contexto', desc: 'Analiza la escena y deduce qué está pasando.', glyph: '⌕' },
+  { id: 'complete', title: 'Complete the Conversation', es: 'Completa la conversación', desc: 'Falta un trozo de la expresión. Pon la pieza exacta.', glyph: '_' },
+  { id: 'battle', title: 'Phrase Battle', es: 'Duelo de frases', desc: 'Dos expresiones parecidas. Solo una encaja de verdad.', glyph: 'vs' },
+  { id: 'quickfire', title: 'Quick Fire', es: 'Ráfaga', desc: '60 segundos. Sí o no. Instinto puro.', glyph: '⚡︎' },
+  { id: 'memory', title: 'Memory Mode', es: 'Memoria', desc: 'Repaso espaciado de lo que estás a punto de olvidar.', glyph: '◐' },
+];
+export const MODE_BY_ID = Object.fromEntries(MODES.map((m) => [m.id, m])) as Record<Mode, ModeInfo>;
+export const IN_RUN_MODES: Mode[] = ['meaning', 'sarcasm', 'natural', 'reply', 'detective', 'complete', 'battle'];
+
+export const INTENTS: { id: Intent; label: string; hint: string }[] = [
+  { id: 'sincere', label: 'Sincero', hint: 'Lo dice tal cual' },
+  { id: 'sarcastic', label: 'Sarcástico', hint: 'Quiere decir lo contrario' },
+  { id: 'passive-aggressive', label: 'Pasivo-agresivo', hint: 'Educado con veneno' },
+  { id: 'annoyed', label: 'Molesto', hint: 'Enfado poco disimulado' },
+  { id: 'joking', label: 'De broma', hint: 'Humor, sin mala intención' },
+  { id: 'flirty', label: 'Coqueto', hint: 'Está ligando' },
+  { id: 'evasive', label: 'Evasivo', hint: 'Esquiva sin decir "no"' },
+];
+export const INTENT_LABEL = Object.fromEntries(INTENTS.map((i) => [i.id, i.label])) as Record<Intent, string>;
+
+export const TAG_LABEL: Record<Tag, string> = {
+  informal: 'informal',
+  slang: 'slang',
+  idiom: 'idiom',
+  phrasal: 'phrasal verb',
+  sarcastic: 'sarcástico',
+  humorous: 'humor',
+  rude: 'borde',
+  flirty: 'coqueto',
+  polite: 'educado',
+  work: 'trabajo',
+  'passive-aggressive': 'pasivo-agresivo',
 };
 
-export type PetPerk = 'coins' | 'xp' | 'time' | 'none';
-export interface Pet {
-  id: string;
-  name: string;
-  desc: string;
-  perk: PetPerk;
-  price: number;
-  color: string;
-  accent: string;
-}
-
-export const PETS: Pet[] = [
-  { id: 'pip', name: 'Pip', desc: 'Tu fiel farolillo. Siempre a tu lado.', perk: 'none', price: 0, color: '#ffd666', accent: '#ff9f1c' },
-  { id: 'brasa', name: 'Brasa', desc: 'Zorrito de fuego. +15 % monedas.', perk: 'coins', price: 250, color: '#ff7a45', accent: '#ffd166' },
-  { id: 'nimbo', name: 'Nimbo', desc: 'Búho de nube. +15 % XP.', perk: 'xp', price: 300, color: '#9ad7ff', accent: '#ffffff' },
-  { id: 'musgo', name: 'Musgo', desc: 'Tortuga sabia. +5 s en retos de tiempo.', perk: 'time', price: 200, color: '#7ccf8a', accent: '#3f8f5a' },
+export const LEVEL_TITLES = [
+  'Tourist',
+  'Exchange Student',
+  'Expat',
+  'Regular',
+  'Local',
+  'Insider',
+  'Smooth Talker',
+  'Native-adjacent',
+  'Unbothered',
+  'Legend',
 ];
-
-export type ItemId = 'hint' | 'time' | 'freeze';
-export interface Item {
-  id: ItemId;
-  name: string;
-  desc: string;
-  price: number;
-  icon: string;
-}
-
-export const ITEMS: Item[] = [
-  { id: 'hint', name: 'Pergamino de pista', desc: 'Elimina 2 opciones incorrectas.', price: 30, icon: '📜' },
-  { id: 'time', name: 'Reloj de arena', desc: '+10 s en un reto de tiempo.', price: 25, icon: '⏳' },
-  { id: 'freeze', name: 'Escudo de racha', desc: 'Protege tu racha un día sin jugar.', price: 120, icon: '🛡️' },
-];
-
-export interface Skin {
-  id: string;
-  name: string;
-  cloak: string;
-  trim: string;
-  price: number;
-}
-
-export const SKINS: Skin[] = [
-  { id: 'aurora', name: 'Capa Aurora', cloak: '#5b6cff', trim: '#ffd166', price: 0 },
-  { id: 'ember', name: 'Capa Ascua', cloak: '#ef476f', trim: '#ffd166', price: 150 },
-  { id: 'grove', name: 'Capa Arboleda', cloak: '#2a9d8f', trim: '#e9f5db', price: 150 },
-  { id: 'night', name: 'Capa Nocturna', cloak: '#2b2d42', trim: '#b69cff', price: 300 },
-];
+export const titleFor = (level: number) => LEVEL_TITLES[Math.min(level, LEVEL_TITLES.length) - 1];
 
 export interface AchievementDef {
   id: string;
   name: string;
   desc: string;
-  icon: string;
 }
 
 export const ACHIEVEMENTS: AchievementDef[] = [
-  { id: 'first', name: 'Primeros pasos', desc: 'Completa tu primer nivel.', icon: '👣' },
-  { id: 'streak3', name: 'Llama viva', desc: 'Racha de 3 días.', icon: '🔥' },
-  { id: 'streak7', name: 'Fuego eterno', desc: 'Racha de 7 días.', icon: '☄️' },
-  { id: 'combo10', name: 'Imparable', desc: 'Consigue un combo de 10.', icon: '⚡' },
-  { id: 'perfect', name: 'Sin mancha', desc: 'Completa un nivel sin fallos.', icon: '💎' },
-  { id: 'echo10', name: 'Cazador de Ecos', desc: 'Domina 10 frases falladas.', icon: '🔮' },
-  { id: 'boss', name: 'Matagigantes', desc: 'Derrota a un boss.', icon: '⚔️' },
-  { id: 'pets', name: 'Domador', desc: 'Consigue 2 mascotas.', icon: '🐾' },
-  { id: 'rich', name: 'Bolsa llena', desc: 'Acumula 500 monedas.', icon: '💰' },
-  { id: 'lvl5', name: 'Héroe curtido', desc: 'Alcanza el nivel 5 de jugador.', icon: '🛡️' },
-  { id: 'chests', name: 'Abrecofres', desc: 'Abre 5 cofres.', icon: '🗝️' },
-  { id: 'valley', name: 'Luz del Valle', desc: 'Completa el Valle Susurro.', icon: '🌟' },
+  { id: 'first', name: 'Small Talk Survivor', desc: 'Termina tu primera sesión.' },
+  { id: 'streak3', name: 'Habit Forming', desc: 'Racha de 3 días.' },
+  { id: 'streak7', name: 'Suspiciously Consistent', desc: 'Racha de 7 días.' },
+  { id: 'streak14', name: 'Main Character Behaviour', desc: 'Racha de 14 días.' },
+  { id: 'combo10', name: 'On a Roll', desc: 'Encadena 10 aciertos.' },
+  { id: 'perfect', name: 'Flawless. Annoyingly.', desc: 'Termina una sesión sin un solo fallo.' },
+  { id: 'sarcasm10', name: 'Fluent in Sarcasm', desc: 'Identifica 10 tonos en Catch the Sarcasm.' },
+  { id: 'literal15', name: 'Lost in Translation? Not Anymore', desc: 'Elige la versión nativa 15 veces.' },
+  { id: 'phrases25', name: 'Collector of Comebacks', desc: 'Reúne 25 expresiones en tu colección.' },
+  { id: 'mastered10', name: 'It Finally Clicked', desc: 'Domina 10 expresiones.' },
+  { id: 'qf20', name: 'Quick on the Draw', desc: 'Haz 20 o más en Quick Fire.' },
+  { id: 'memory30', name: 'Long-Term Relationship', desc: 'Repasa 30 tarjetas en Memory.' },
+  { id: 'c1x10', name: 'Show-off', desc: 'Acierta 10 desafíos de nivel C1.' },
+  { id: 'night', name: '2 AM Philosopher', desc: 'Juega entre medianoche y las 4.' },
+  { id: 'packs5', name: 'Binge Learner', desc: 'Juega 5 colecciones distintas.' },
+  { id: 'lvl5', name: 'Basically a Local', desc: 'Alcanza el nivel 5.' },
 ];
 
-export type MissionKind = 'levels' | 'correct' | 'combo' | 'echoes' | 'coins' | 'stars3' | 'timed';
+export type MissionKind = 'sessions' | 'correct' | 'sarcasm' | 'memory' | 'quickfire' | 'combo' | 'discover' | 'daily';
 export interface MissionTemplate {
   id: string;
   kind: MissionKind;
@@ -98,14 +98,13 @@ export interface MissionTemplate {
 }
 
 export const MISSION_POOL: MissionTemplate[] = [
-  { id: 'lv2', kind: 'levels', target: 2, text: 'Completa 2 niveles', reward: 40 },
-  { id: 'lv3', kind: 'levels', target: 3, text: 'Completa 3 niveles', reward: 60 },
-  { id: 'c20', kind: 'correct', target: 20, text: 'Acierta 20 frases', reward: 40 },
-  { id: 'c35', kind: 'correct', target: 35, text: 'Acierta 35 frases', reward: 60 },
-  { id: 'cb5', kind: 'combo', target: 5, text: 'Logra un combo de 5', reward: 35 },
-  { id: 'cb8', kind: 'combo', target: 8, text: 'Logra un combo de 8', reward: 50 },
-  { id: 'ec3', kind: 'echoes', target: 3, text: 'Acierta 3 Ecos', reward: 45 },
-  { id: 'co80', kind: 'coins', target: 80, text: 'Gana 80 monedas', reward: 40 },
-  { id: 'st3', kind: 'stars3', target: 1, text: 'Consigue 3 estrellas en un nivel', reward: 50 },
-  { id: 'tm1', kind: 'timed', target: 1, text: 'Supera un reto de tiempo', reward: 45 },
+  { id: 's1', kind: 'sessions', target: 1, text: 'Termina una sesión', reward: 40 },
+  { id: 's2', kind: 'sessions', target: 2, text: 'Termina dos sesiones', reward: 70 },
+  { id: 'c20', kind: 'correct', target: 20, text: 'Acierta 20 desafíos', reward: 50 },
+  { id: 'sa3', kind: 'sarcasm', target: 3, text: 'Pilla 3 tonos en Catch the Sarcasm', reward: 50 },
+  { id: 'm5', kind: 'memory', target: 5, text: 'Repasa 5 tarjetas en Memory', reward: 40 },
+  { id: 'q12', kind: 'quickfire', target: 12, text: 'Haz 12 o más en Quick Fire', reward: 50 },
+  { id: 'cb6', kind: 'combo', target: 6, text: 'Encadena 6 aciertos', reward: 45 },
+  { id: 'd3', kind: 'discover', target: 3, text: 'Descubre 3 expresiones nuevas', reward: 40 },
+  { id: 'dm', kind: 'daily', target: 1, text: 'Completa la sesión de hoy', reward: 50 },
 ];

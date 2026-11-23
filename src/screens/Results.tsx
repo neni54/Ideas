@@ -1,180 +1,154 @@
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
-import { ChestArt, CoinIcon, FlameIcon, Hero, Npc, Pip, XpIcon } from '../art/Art';
 import { sfx } from '../audio/sfx';
-import { Btn, Burst, CountUp, Modal, Stars } from '../components/ui';
-import { ITEMS, SKINS } from '../data/meta';
-import { WORLD1 } from '../data/world1';
-import { useGame, type ChestLoot } from '../store/game';
+import { Btn, CountUp, Icon, Sheet } from '../components/ui';
+import { ALL, plain } from '../data/content';
+import { ACHIEVEMENTS, titleFor } from '../data/meta';
+import { verdict } from '../data/voice';
+import { useGame } from '../store/game';
+import { runLabel } from './Play';
 
-export function LootList({ loot }: { loot: ChestLoot }) {
-  return (
-    <div className="loot">
-      <motion.div className="loot-item" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.2 }}>
-        <CoinIcon size={30} /> <b>+{loot.coins}</b>
-      </motion.div>
-      {Object.entries(loot.items).map(([id, n], i) => {
-        const it = ITEMS.find((x) => x.id === id)!;
-        return (
-          <motion.div key={id} className="loot-item" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.35 + i * 0.15 }}>
-            <span className="loot-icon">{it.icon}</span> <b>+{n}</b>
-            <small>{it.name}</small>
-          </motion.div>
-        );
-      })}
-      {loot.skin && (
-        <motion.div className="loot-item epic" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.8 }}>
-          <Hero size={40} skin={loot.skin} /> <small>{SKINS.find((s) => s.id === loot.skin)?.name}</small>
-        </motion.div>
-      )}
-    </div>
-  );
-}
-
-export function ChestOpener({ loot, onDone }: { loot: ChestLoot; onDone?: () => void }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="chest-opener">
-      <motion.button
-        className={`chest-btn ${open ? 'opened' : 'shake'}`}
-        onClick={() => {
-          if (open) return;
-          setOpen(true);
-          sfx.chest();
-          onDone?.();
-        }}
-        whileTap={{ scale: 0.92 }}
-      >
-        <ChestArt size={140} open={open} tier={loot.tier} />
-        {open && <Burst count={30} spread={180} />}
-      </motion.button>
-      {open ? <LootList loot={loot} /> : <p className="tap-hint">¡Toca el cofre para abrirlo!</p>}
-    </div>
-  );
-}
+const mmss = (ms: number) => {
+  const s = Math.round(ms / 1000);
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+};
 
 export function Results() {
-  const { result, go, play } = useGame();
-  const [chestOpened, setChestOpened] = useState(false);
-  const [showLevelUp, setShowLevelUp] = useState(false);
+  const { result, start, quit, openExpression, stats } = useGame();
+  const [levelUp, setLevelUp] = useState(false);
   useEffect(() => {
-    if (result && !result.failed) setTimeout(() => sfx.levelUp(), 200);
+    if (!result) return;
+    sfx.unlock();
+    if (result.levelUp) {
+      const t = setTimeout(() => setLevelUp(true), 1400);
+      return () => clearTimeout(t);
+    }
   }, [result]);
   if (!result) return null;
 
-  const level = result.target.mode === 'level' ? WORLD1.levels.find((l) => l.id === (result.target as { levelId: string }).levelId) : null;
-  const isBoss = level?.kind === 'boss';
-  const nextLevel = level ? WORLD1.levels[level.n] : undefined;
-
-  const leave = () => {
-    if (result.levelUp && !showLevelUp) {
-      setShowLevelUp(true);
-      sfx.levelUp();
-      return;
-    }
-    go(level ? 'map' : 'home');
-  };
-
-  const title = result.failed
-    ? `${level!.boss!.name} resiste…`
-    : isBoss
-      ? '¡Victoria!'
-      : level
-        ? result.stars === 3
-          ? '¡Nivel perfecto!'
-          : '¡Nivel completado!'
-        : '¡Ecos repasados!';
+  const isQF = result.run.kind === 'quickfire';
+  const isMem = result.run.kind === 'memory';
+  const v = isQF
+    ? { title: result.newBest ? 'New personal best.' : result.score! >= 15 ? 'Fast and right. Rare combo.' : 'Speed is a skill. Keep training it.', sub: `Récord: ${stats.qfBest}` }
+    : isMem
+      ? { title: result.firstTry === result.total ? 'Nothing forgotten. Suspicious.' : 'Memory refreshed.', sub: 'Lo que costó volverá antes. Lo que sabías, más tarde.' }
+      : verdict(result.accuracy);
 
   return (
-    <div className={`screen results ${result.failed ? 'results-fail' : ''}`}>
-      {!result.failed && <Burst count={36} spread={220} />}
-      <div className="results-hero">
-        {isBoss ? <Npc id={level!.character} size={120} mood={result.failed ? 'idle' : 'sad'} /> : <Pip size={120} mood={result.stars >= 2 || !level ? 'happy' : 'idle'} />}
-      </div>
-      <motion.h1 className="title-xl" initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 260, damping: 14 }}>
-        {title}
+    <div className="screen results">
+      <div className="eyebrow">{runLabel(result.run)} · terminado</div>
+      <motion.h1 className="display" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+        {v.title}
       </motion.h1>
-      {isBoss && <p className="results-quote">“{result.failed ? '¡Ja! Vuelve cuando tus palabras brillen más… (Sigue herido: la próxima vez tendrá menos vida)' : level!.boss!.defeat}”</p>}
-      {level && !result.failed && <Stars n={result.stars} size={52} animate />}
+      <p className="muted lead">{v.sub}</p>
 
-      <div className="stat-grid">
-        <div className="stat">
-          <XpIcon size={26} />
+      <div className="kpis">
+        {isQF ? (
+          <div className="kpi">
+            <b>
+              <CountUp value={result.score ?? 0} />
+            </b>
+            <small>aciertos en 60 s</small>
+          </div>
+        ) : (
+          <div className="kpi">
+            <b>
+              <CountUp value={Math.round(result.accuracy * 100)} />%
+            </b>
+            <small>{isMem ? 'recordadas' : 'a la primera'}</small>
+          </div>
+        )}
+        <div className="kpi">
           <b>
-            +<CountUp value={result.totalXp} duration={900} />
+            +<CountUp value={result.totalXp} />
           </b>
           <small>XP</small>
         </div>
-        <div className="stat">
-          <CoinIcon size={26} />
-          <b>
-            +<CountUp value={result.totalCoins} duration={900} />
-          </b>
-          <small>Monedas</small>
+        <div className="kpi">
+          <b>{isMem ? result.total : `×${result.maxCombo}`}</b>
+          <small>{isMem ? 'tarjetas' : 'mejor racha'}</small>
         </div>
-        <div className="stat">
-          <span className="stat-emoji">🎯</span>
-          <b>{Math.round(result.accuracy * 100)}%</b>
-          <small>Precisión</small>
-        </div>
-        <div className="stat">
-          <span className="stat-emoji">🔥</span>
-          <b>×{result.maxCombo}</b>
-          <small>Combo máx.</small>
+        <div className="kpi">
+          <b>{mmss(result.ms)}</b>
+          <small>tiempo</small>
         </div>
       </div>
 
-      {(result.echoesCleared > 0 || result.timeBonus > 0 || result.firstClear) && (
-        <div className="bonus-row">
-          {result.firstClear && <span>🏁 Primera vez +30 XP</span>}
-          {result.echoesCleared > 0 && <span>🔮 {result.echoesCleared} Ecos acertados</span>}
-          {result.timeBonus > 0 && <span>⏳ +{result.timeBonus} por tiempo</span>}
-        </div>
+      {result.bonuses.length > 0 && (
+        <ul className="ledger">
+          {result.bonuses.map((b) => (
+            <li key={b.label}>
+              <span>{b.label}</span>
+              <b>+{b.xp}</b>
+            </li>
+          ))}
+        </ul>
       )}
 
       {result.streakUp && (
-        <motion.div className="streak-banner" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 1, type: 'spring' }}>
-          <FlameIcon size={34} /> <b>¡Racha de {result.streakUp} día{result.streakUp > 1 ? 's' : ''}!</b>
+        <motion.div className="streak-note" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
+          <Icon name="flame" size={18} /> Día {result.streakUp} de racha. {result.streakUp % 7 === 0 ? 'Has ganado un escudo de racha.' : 'Mañana, otra.'}
         </motion.div>
       )}
 
-      {result.chest && (
-        <div className="card results-chest">
-          <h3>{result.chest.tier === 'epic' ? '🏆 Cofre épico' : '🗝️ Cofre de los sellos'}</h3>
-          <ChestOpener loot={result.chest} onDone={() => setChestOpened(true)} />
+      {result.newAchievements.length > 0 && (
+        <div className="ach-note">
+          {result.newAchievements.map((id) => (
+            <span key={id}>
+              <Icon name="sparkle" size={14} /> {ACHIEVEMENTS.find((a) => a.id === id)?.name}
+            </span>
+          ))}
         </div>
       )}
 
-      {result.unlockedLevel && nextLevel && <p className="unlock-note">🔓 Desbloqueado: <b>Nivel {nextLevel.n} · {nextLevel.title}</b></p>}
+      {result.newIds.length > 0 && (
+        <section className="block">
+          <h3 className="block-title">Nuevas en tu colección · {result.newIds.length}</h3>
+          <ul className="xlist">
+            {result.newIds.map((id) => (
+              <li key={id}>
+                <button onClick={() => openExpression(id)}>
+                  <span className="xlist-en">{plain(ALL[id].en)}</span>
+                  <span className="xlist-es">{ALL[id].es}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
-      <div className="results-actions">
-        {result.failed ? (
-          <>
-            <Btn big variant="danger" onClick={() => play(result.target)}>
-              Revancha
-            </Btn>
-            <Btn variant="ghost" onClick={() => go('map')}>
-              Volver al mapa
-            </Btn>
-          </>
-        ) : (
-          <Btn big disabled={!!result.chest && !chestOpened} onClick={leave}>
-            {result.chest && !chestOpened ? 'Abre el cofre' : 'Continuar'}
-          </Btn>
-        )}
+      {result.missedIds.length > 0 && (
+        <section className="block">
+          <h3 className="block-title">Para repasar · vuelven en Memory</h3>
+          <ul className="xlist">
+            {result.missedIds.map((id) => (
+              <li key={id}>
+                <button onClick={() => openExpression(id)}>
+                  <span className="xlist-en">{plain(ALL[id].en)}</span>
+                  <span className="xlist-es">{ALL[id].gist}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <div className="row-actions sticky-actions">
+        <Btn variant="ghost" onClick={() => start(result.run)}>
+          <Icon name="refresh" size={16} /> Otra vez
+        </Btn>
+        <Btn onClick={() => quit()}>Continuar</Btn>
       </div>
 
-      <Modal open={showLevelUp} onClose={() => go(level ? 'map' : 'home')} className="levelup">
-        <Burst count={30} spread={200} />
-        <div className="levelup-badge">
-          <span>{result.levelUp?.to}</span>
-        </div>
-        <h2 className="title-xl">¡Subes de nivel!</h2>
-        <p className="muted">Tu luz es más fuerte. Nivel {result.levelUp?.from} → {result.levelUp?.to}</p>
-        <Btn big onClick={() => go(level ? 'map' : 'home')}>
-          ¡Genial!
+      <Sheet open={levelUp} onClose={() => setLevelUp(false)} className="levelup">
+        <div className="eyebrow">Level up</div>
+        <p className="levelup-n">{result.levelUp?.to}</p>
+        <p className="serif-lg">{titleFor(result.levelUp?.to ?? 1)}</p>
+        <p className="muted">Antes eras {titleFor(result.levelUp?.from ?? 1)}. Ahora se nota. Puede que hayas desbloqueado nuevas colecciones.</p>
+        <Btn wide onClick={() => setLevelUp(false)}>
+          Seguir
         </Btn>
-      </Modal>
+      </Sheet>
     </div>
   );
 }

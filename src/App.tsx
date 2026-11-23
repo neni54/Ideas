@@ -1,12 +1,14 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect } from 'react';
-import { BottomNav, Hud, Toasts } from './components/ui';
-import { Home } from './screens/Home';
-import { MapScreen } from './screens/MapScreen';
-import { Bag, Missions, Profile } from './screens/Meta';
+import { ExpressionSheet } from './components/ExpressionCard';
+import { BottomNav, Toasts } from './components/ui';
+import { Games, Library, PackSheet } from './screens/Browse';
+import { Memory, QuickFire } from './screens/Drills';
 import { Onboarding } from './screens/Onboarding';
 import { Play } from './screens/Play';
 import { Results } from './screens/Results';
+import { Today } from './screens/Today';
+import { Phrases, Profile } from './screens/You';
 import { useGame } from './store/game';
 
 export default function App() {
@@ -29,34 +31,29 @@ export default function App() {
       </div>
     );
 
-  const immersive = screen === 'play' || screen === 'results';
+  const immersive = ['play', 'quickfire', 'memory', 'results'].includes(screen);
   const views: Record<string, JSX.Element> = {
-    home: <Home />,
-    map: <MapScreen />,
-    missions: <Missions />,
-    bag: <Bag />,
+    today: <Today />,
+    library: <Library />,
+    games: <Games />,
+    phrases: <Phrases />,
     profile: <Profile />,
     play: <Play key={runId} />,
+    quickfire: <QuickFire key={runId} />,
+    memory: <Memory key={runId} />,
     results: <Results />,
   };
 
   return (
-    <div className={`app ${immersive ? 'immersive' : ''} screen-${screen}`}>
-      <div className="stars-bg" aria-hidden />
-      {!immersive && <Hud />}
+    <div className={`app ${immersive ? 'immersive' : ''}`}>
       <AnimatePresence mode="wait">
-        <motion.div
-          key={screen}
-          className="view"
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          transition={{ duration: 0.22 }}
-        >
+        <motion.div key={screen + (immersive ? runId : '')} className="view" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
           {views[screen]}
         </motion.div>
       </AnimatePresence>
       {!immersive && <BottomNav />}
+      <ExpressionSheet />
+      <PackSheet />
       <Toasts />
     </div>
   );

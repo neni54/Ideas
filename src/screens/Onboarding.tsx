@@ -1,77 +1,101 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { useState } from 'react';
-import { Hero, Pip } from '../art/Art';
-import { Btn } from '../components/ui';
-import { useGame } from '../store/game';
+import { useEffect, useState } from 'react';
+import { Btn, Icon } from '../components/ui';
+import { useGame, type Goal } from '../store/game';
 
-const SLIDES = [
-  {
-    title: 'Lumora',
-    text: 'Hubo un tiempo en que cada palabra brillaba. Las Palabras Luminosas mantenían vivo el reino.',
-    mood: 'happy' as const,
-  },
-  {
-    title: 'La Bruma del Olvido',
-    text: 'Una niebla extraña cubrió el Valle Susurro y se llevó las palabras. Ahora nadie se entiende.',
-    mood: 'sad' as const,
-  },
-  {
-    title: '¡Te necesito!',
-    text: 'Soy Pip. Tú puedes entender el idioma de la luz: el inglés. Tradúcelo y devolveremos el brillo al valle.',
-    mood: 'wow' as const,
-  },
+const GOALS: { id: Goal; label: string; sub: string }[] = [
+  { id: 'series', label: 'Series y pelis', sub: 'Entender sin subtítulos' },
+  { id: 'work', label: 'Trabajo', sub: 'Reuniones, correos, jefes' },
+  { id: 'dating', label: 'Citas', sub: 'Apps, mensajes y señales' },
+  { id: 'social', label: 'Vida social', sub: 'Amigos, cenas, cotilleos' },
+];
+
+const DEMO = [
+  { en: '“That’s an interesting choice.”', es: 'No me gusta nada.' },
+  { en: '“No rush, but…”', es: 'Lo necesito ya.' },
+  { en: '“I’m fine. Seriously.”', es: 'No está bien.' },
 ];
 
 export function Onboarding() {
-  const finish = useGame((s) => s.finishOnboarding);
-  const [i, setI] = useState(0);
-  const [name, setName] = useState('');
-  const naming = i >= SLIDES.length;
-  const slide = SLIDES[Math.min(i, SLIDES.length - 1)];
+  const { finishOnboarding, name: prevName } = useGame();
+  const [step, setStep] = useState(0);
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [name, setName] = useState(prevName);
+  const [demo, setDemo] = useState(0);
+
+  useEffect(() => {
+    if (step !== 0) return;
+    const t = setInterval(() => setDemo((d) => (d + 1) % DEMO.length), 2600);
+    return () => clearInterval(t);
+  }, [step]);
 
   return (
-    <div className="onboard">
-      <div className={`onboard-sky ${i === 1 ? 'foggy' : ''}`} />
+    <div className="screen onboard">
+      <div className="wordmark">
+        Sub<span>text</span>
+      </div>
       <AnimatePresence mode="wait">
-        {!naming ? (
-          <motion.div key={i} className="onboard-slide" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -30 }}>
-            <div className="float">
-              <Pip size={150} mood={slide.mood} />
+        {step === 0 && (
+          <motion.div key="s0" className="ob-step" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}>
+            <h1 className="display-xl">English, between the lines.</h1>
+            <p className="lead">Para entender a los nativos de verdad: el sarcasmo, las indirectas y lo que dicen cuando quieren decir otra cosa. De B1 a C1.</p>
+            <div className="demo">
+              <AnimatePresence mode="wait">
+                <motion.div key={demo} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }}>
+                  <p className="demo-en">{DEMO[demo].en}</p>
+                  <p className="demo-es">
+                    <span>Traducción real</span> {DEMO[demo].es}
+                  </p>
+                </motion.div>
+              </AnimatePresence>
             </div>
-            <h1 className="title-xl">{slide.title}</h1>
-            <p className="onboard-text">{slide.text}</p>
           </motion.div>
-        ) : (
-          <motion.div key="name" className="onboard-slide" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}>
-            <div className="onboard-duo">
-              <Hero size={110} mood="happy" />
-              <div className="float">
-                <Pip size={80} mood="happy" />
-              </div>
+        )}
+        {step === 1 && (
+          <motion.div key="s1" className="ob-step" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}>
+            <div className="eyebrow">1 de 2</div>
+            <h1 className="display">Where do you want to stop translating in your head?</h1>
+            <p className="muted">Elige uno o varios. Lo usamos para recomendarte colecciones.</p>
+            <div className="goals">
+              {GOALS.map((g) => {
+                const on = goals.includes(g.id);
+                return (
+                  <button key={g.id} className={`goal ${on ? 'on' : ''}`} onClick={() => setGoals(on ? goals.filter((x) => x !== g.id) : [...goals, g.id])} aria-pressed={on}>
+                    <b>{g.label}</b>
+                    <small>{g.sub}</small>
+                    <span className="goal-check">{on && <Icon name="check" size={14} />}</span>
+                  </button>
+                );
+              })}
             </div>
-            <h1 className="title-lg">¿Cómo te llamas, Portador de Luz?</h1>
+          </motion.div>
+        )}
+        {step === 2 && (
+          <motion.div key="s2" className="ob-step" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}>
+            <div className="eyebrow">2 de 2</div>
+            <h1 className="display">What should we call you?</h1>
             <input
+              id="ob-name"
               className="name-input"
               value={name}
-              maxLength={16}
-              placeholder="Tu nombre de héroe"
-              onChange={(e) => setName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && finish(name)}
+              maxLength={20}
+              placeholder="Tu nombre"
               autoFocus
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && finishOnboarding(name, goals)}
             />
+            <p className="muted">Cinco minutos al día bastan. Te avisamos de lo que estás a punto de olvidar.</p>
           </motion.div>
         )}
       </AnimatePresence>
-      <div className="onboard-footer">
-        {!naming && (
-          <div className="dots">
-            {SLIDES.map((_, k) => (
-              <span key={k} className={k === i ? 'on' : ''} />
-            ))}
-          </div>
-        )}
-        <Btn big onClick={() => (naming ? finish(name) : setI(i + 1))}>
-          {naming ? '¡Comenzar la aventura!' : 'Continuar'}
+      <div className="ob-foot">
+        <div className="ob-dots">
+          {[0, 1, 2].map((i) => (
+            <i key={i} className={i === step ? 'on' : ''} />
+          ))}
+        </div>
+        <Btn wide onClick={() => (step < 2 ? setStep(step + 1) : finishOnboarding(name, goals))}>
+          {step === 0 ? 'Empezar' : step === 1 ? (goals.length ? 'Continuar' : 'Saltar') : 'Entrar'} <Icon name="arrow" size={16} />
         </Btn>
       </div>
     </div>

@@ -1,193 +1,102 @@
-# Lumora: English Quest — Documento de diseño (MVP)
+# Subtext — Documento de diseño (v2)
 
-> Un RPG de aventura móvil donde la magia es el idioma. Para avanzar, el jugador
-> comprende y traduce frases en inglés al español.
+> *English, between the lines.* Una app para adultos de 25 a 50 años que ya se defienden
+> en inglés (B1–C1) y quieren entender a los nativos de verdad: el sarcasmo, las indirectas,
+> el slang y lo que la gente dice cuando quiere decir otra cosa.
 
----
-
-## 1. Concepto y fantasía
-
-El reino de **Lumora** estaba unido por las *Palabras Luminosas*. Una niebla
-llamada **la Bruma del Olvido** ha cubierto los mundos y ha robado sus palabras.
-El jugador es un **Portador de Luz** acompañado por **Pip**, un espíritu-farolillo.
-Cada frase traducida devuelve luz al mundo: abre puertas, despierta personajes,
-rompe sellos y, al final, derrota a los guardianes de la Bruma.
-
-**Mundo 1 – Valle Susurro**: aldea, bosque, río, ruinas y la Torre de la Bruma.
-20 niveles en un camino serpenteante, con 2 bosses (nivel 10 y 20) y cofres.
-
-Principios de diseño:
-
-1. **Juego primero, lección después.** El jugador nunca "hace ejercicios": abre
-   cofres, habla con personajes, rompe sellos y lucha contra bosses.
-2. **El error enseña, no castiga.** Fallar muestra la respuesta correcta, explica
-   el porqué con una pista corta, y la frase vuelve más tarde ("Eco").
-3. **Una pantalla, una función.** Nada compite por la atención.
-4. **Motivo para volver mañana**: racha, misiones diarias, cofre diario, Ecos
-   pendientes y el siguiente nivel siempre visible.
+La v1 (*Lumora*) era un RPG de fantasía con frases de nivel A1–A2, un único mecanismo
+(traducir) y una estética cartoon (monedas, cofres, mascotas). La v2 conserva la base técnica
+y la rehace para un público adulto.
 
 ---
 
-## 2. Arquitectura técnica
+## 1. Qué se conservó de la v1 y qué cambió
 
-| Capa | Elección | Motivo |
+| Se conserva | Cambia |
+|---|---|
+| Arquitectura `data/ → engine/ → store/ → screens/` | Mundo de fantasía → colecciones temáticas tipo "temporada" |
+| Repetición espaciada Leitner (ahora para **todas** las expresiones) | 200 frases A1–A2 → 75 expresiones B1–C1 con ficha didáctica completa |
+| Reinserción del fallo en la misma sesión, con **otro** modo | 4 ejercicios de traducción → 9 modos de juego con lógica e interfaz propias |
+| Misiones diarias deterministas por fecha | Monedas, cofres, mascotas y skins → XP, títulos, colección y estadísticas |
+| Racha con escudos (ahora se ganan, no se compran) | Estética cartoon → editorial oscura (carbón, crema, burdeos, oliva) |
+| Dificultad adaptable según las últimas 30 respuestas | Mensajes infantiles → voz ingeniosa y algo sarcástica |
+| Guardado seguro en `localStorage`, voz TTS, SFX sintetizados | Se migran nombre, XP y racha del guardado de la v1 |
+
+---
+
+## 2. Contenido
+
+Cada **expresión** (`src/data/types.ts`) es una unidad didáctica completa, y todos los modos
+se generan a partir de sus campos. Añadir un pack nuevo es solo añadir datos.
+
+| Campo | Para qué sirve |
+|---|---|
+| `en` (con `[fragmento]`), `es`, `level` (CEFR), `tags` | La expresión, su traducción natural (España), nivel y registro |
+| `context`, `meaning`, `mistake`, `ex` | La ficha: cuándo se usa, matiz real, error típico, otro ejemplo |
+| `gist`, `literal`, `wrong[2]` | Significado real vs. trampa literal vs. interpretaciones erróneas |
+| `intent`, `scene` | Tono (sincero, sarcástico, pasivo-agresivo…) y la escena que lo da |
+| `cue[3]` | Lo que te dicen + dos respuestas poco naturales |
+| `chunkWrong[2]` | Casi-aciertos del fragmento ("on the wall" vs "on the fence") |
+| `calques[2]` | Lo que diría un hispanohablante traduciendo palabra por palabra |
+| `battle[3]` | Situación + expresión rival parecida + la diferencia |
+
+**15 colecciones × 5 expresiones**: Everyday Conversations, Sarcasm & Wit, Dating Disasters,
+Things We Say / Things We Mean, Office Politics, Friends & Social Drama, Awkward Situations,
+Idioms & Phrasal Verbs, Passive-Aggressive English, American Slang, Red Flags,
+Overthinking at 2 AM, Main Character Energy, Pop Culture, Plot Twists.
+Todo el contenido es original; no reproduce diálogos ni frases célebres de series o películas.
+
+---
+
+## 3. Modos de juego
+
+| Modo | Mecánica | Interfaz |
 |---|---|---|
-| UI | React 18 + TypeScript | Componentes, tipado del contenido |
-| Build | Vite | Rápido, build a un único HTML para compartir |
-| Estado | Zustand + persistencia en `localStorage` | Simple, sin backend en el MVP |
-| Animación | Framer Motion + CSS keyframes | Transiciones suaves de pantalla y feedback |
-| Arte | SVG inline dibujado a mano | Nítido en cualquier pantalla, sin assets externos |
-| Audio | Web Audio API (SFX sintetizados) + `speechSynthesis` (voz en inglés) | Cero archivos de audio |
+| What Does It Really Mean? | Significado real vs. traducción literal | Cita editorial grande + opciones A–D |
+| Catch the Sarcasm | Escena + frase → elegir el tono | Rejilla de tonos con descripción |
+| Literal vs. Natural | Idea en español → elegir la versión nativa | "Borradores" etiquetados como Nativo / Calco |
+| What Would You Say? | Te escriben → elige tu respuesta | Chat con estados *online / Read / seen* |
+| Context Detective | Situación + prueba → hipótesis | Expediente ("case file") |
+| Complete the Conversation | Falta el fragmento exacto | Transcripción con hueco + piezas |
+| Phrase Battle | Dos expresiones parecidas, una encaja | Duelo A vs B |
+| Quick Fire | 60 s de sí o no (¿suena nativo? / ¿significa esto?) | Temporizador circular, flechas del teclado |
+| Memory | Tarjetas que giran + autoevaluación (Ni idea / Me costó / Lo sabía) | Volteo 3D, programación SRS |
 
-```
-src/
-├── main.tsx / App.tsx        # arranque y "router" por estado
-├── data/                     # CONTENIDO (puro, sin lógica)
-│   ├── world1.ts             # 20 niveles × 10 frases
-│   ├── characters.ts         # personajes y diálogos
-│   ├── pets.ts · items.ts · skins.ts
-│   ├── achievements.ts       # definiciones de logros
-│   └── missions.ts           # plantillas de misiones diarias
-├── engine/                   # LÓGICA DE JUEGO (pura, testeable)
-│   ├── session.ts            # construye la partida (frases + Ecos + tipos)
-│   ├── exercises.ts          # genera opciones, distractores, fichas
-│   ├── srs.ts                # repetición espaciada (Leitner)
-│   ├── progression.ts        # XP, niveles, estrellas, recompensas
-│   ├── missions.ts           # misiones del día
-│   └── date.ts               # utilidades de día/racha
-├── store/game.ts             # estado global persistido + acciones
-├── audio/                    # sfx.ts, speech.ts
-├── components/               # UI reutilizable (botones, barras, cofre, Pip…)
-├── art/                      # ilustraciones SVG (personajes, mapa, cofres)
-├── exercises/                # 4 tipos de ejercicio
-└── screens/                  # pantallas
-```
-
-**Regla:** `data/` no conoce React, `engine/` no conoce React, las pantallas sólo
-llaman acciones del store. Así añadir el Mundo 2 es añadir un archivo de datos.
+Tras cada respuesta, un **panel de veredicto** muestra una frase de la "voz" de la app, la
+expresión con audio, el matiz (o la diferencia, o el tono) y, si fallas, el error típico.
+"Ficha completa" abre la ficha de la expresión.
 
 ---
 
-## 3. Pantallas
+## 4. Sesiones
 
-| # | Pantalla | Función única |
-|---|---|---|
-| 0 | **Prólogo** (primera vez) | Historia en 3 viñetas + nombre del héroe |
-| 1 | **Campamento (Home)** | Botón gigante *Continuar*, racha, nivel, misiones y Ecos |
-| 2 | **Mapa del mundo** | Camino de 20 nodos, desbloqueo, estrellas, cofres, bosses |
-| 3 | **Briefing de nivel** | Quién te necesita, qué hay en juego, botón Jugar |
-| 4 | **Gameplay** | Un reto a la vez, feedback inmediato |
-| 5 | **Resultados** | Estrellas, XP, monedas, cofre, subida de nivel |
-| 6 | **Misiones** | 3 misiones diarias + cofre diario |
-| 7 | **Mochila** | Monedas, objetos, mascotas, skins, tienda |
-| 8 | **Perfil** | Estadísticas, logros, ajustes |
-
-Navegación inferior (5 pestañas): **Inicio · Mapa · Misiones · Mochila · Perfil**.
-Se oculta durante el gameplay para máxima inmersión.
+- **Sesión de hoy (5 min)**: 8 desafíos = hasta 3 repasos vencidos + 3 nuevas (del nivel CEFR que te toca) + 1 **sorpresa** de una colección bloqueada.
+- **Episodio**: las 5 expresiones de una colección, dos veces y en modos distintos, más 2 repasos de otras colecciones.
+- **Práctica**: 8 desafíos de un solo modo (desde *Juegos* o desde una colección).
+- **Memory** y **Quick Fire**: flujos propios.
 
 ---
 
-## 4. Flujo de navegación
+## 5. Progresión
+
+- **XP** según el nivel CEFR (10/12/15), bonus por racha de aciertos, por terminar, por sesión perfecta, por la sesión diaria y ×1.5 en la *colección de la semana*.
+- **Niveles con título**: Tourist → Exchange Student → Expat → Regular → Local → Insider → Smooth Talker → Native-adjacent → Unbothered → Legend. Las colecciones se abren por nivel.
+- **Dominio por expresión** (0–5, Leitner: 10 min · 1 d · 3 d · 7 d · 16 d · 45 d). Solo sube si la tarjeta "tocaba": no se puede hacer trampa empollando.
+- **Racha diaria** con escudos (se gana uno cada 7 días de racha y otro con el bonus de retos).
+- **3 retos diarios** + bonus (XP, escudo y comodines 50/50).
+- **16 logros** con nombres en inglés ("Fluent in Sarcasm", "Flawless. Annoyingly.", "2 AM Philosopher"…).
+- **Estadísticas**: actividad de 7 días, precisión por modo, progreso por nivel CEFR.
+
+---
+
+## 6. Pantallas y navegación
 
 ```
-Primera vez → Prólogo → Campamento
-Campamento ──Continuar──▶ Briefing ─Jugar─▶ Gameplay ─▶ Resultados ─▶ (Cofre) ─▶ (Subida de nivel) ─▶ Mapa
-Campamento ──Ecos──────▶ Gameplay (modo repaso) ─▶ Resultados ─▶ Campamento
-Mapa ──nodo──▶ Briefing   ·   Mapa ──nodo cofre──▶ Apertura de cofre
-Gameplay ──✕──▶ Confirmar salida ─▶ Mapa (sin perder progreso global)
+Onboarding (propuesta de valor → intereses → nombre)
+  └─ Hoy · Colecciones · Juegos · Frases · Perfil   (navegación inferior)
+        Hoy ─▶ Sesión de hoy / Memory / Quick Fire / Colección recomendada
+        Colecciones ─▶ Ficha de colección ─▶ Episodio o práctica por modo
+        Juegos ─▶ 9 modos
+        Frases ─▶ Buscador + filtros ─▶ Ficha de expresión (con mini-reto)
+  Juego ─▶ Veredicto ─▶ … ─▶ Resultados ─▶ (Subida de nivel) ─▶ pestaña de origen
 ```
-
----
-
-## 5. Estructura de datos
-
-```ts
-Phrase      { id, en, es, key, tip, traps?, alt? }
-            // es usa [corchetes] para marcar la palabra clave del ejercicio "completar"
-            // traps: traducciones trampa escritas a mano (falsos amigos, tiempos…)
-Level       { id, n, title, story, character, kind: 'normal'|'timed'|'chest'|'boss',
-              phrases: Phrase[10], boss? { name, hp } }
-World       { id, name, levels: Level[20] }
-
-PlayerState {
-  name, skin, activePet,
-  xp, coins, streak, lastPlayDay, streakFreezes,
-  levels:   { [levelId]: { stars, best, completed } },
-  srs:      { [phraseId]: { box: 0..5, due: timestamp, fails } },
-  stats:    { correct, answered, bestCombo, levelsDone, echoesCleared, chests, perfects, bossWins },
-  missions: { day, list: [{ id, target, progress, claimed }], chestClaimed },
-  inventory:{ items: { hint, time, freeze }, pets: string[], skins: string[] },
-  achievements: { [id]: unlockedAt },
-  recent:   boolean[]  // últimas 30 respuestas → dificultad adaptable
-  settings: { sound, voice }
-}
-```
-
----
-
-## 6. Mecánicas
-
-### Tipos de ejercicio (4 en el MVP)
-1. **Elige la traducción** – 4 opciones en español (correcta + trampas + frases del nivel).
-2. **Forja la frase** – ordenar fichas de palabras en español (+ 2 fichas señuelo con dificultad alta).
-3. **Completa el hechizo** – la traducción tiene un hueco; elegir la palabra correcta.
-4. **Conversación** – un personaje habla en inglés en un bocadillo; eliges qué ha dicho.
-
-### Modificadores de nivel
-- **Reto de tiempo** (⏳): cuenta atrás por frase; el tiempo sobrante da monedas extra.
-- **Cofre/Puerta** (🔒): cada acierto rompe un sello; al final se abre el cofre.
-- **Boss battle** (⚔️): el boss tiene vida; cada acierto es un ataque, cada fallo
-  te quita un corazón (5). Frases más largas y sólo ejercicios difíciles.
-  Si pierdes, el boss queda herido: la siguiente vez empieza con menos vida.
-
-### Recompensas
-- Acierto: **+10 XP**, **+3 monedas**. Combo ≥3: +2 XP extra por acierto.
-- Estrellas: ★ completar · ★★ ≥70 % · ★★★ ≥90 %.
-- Primera vez completado: bonus de monedas. Repetir: recompensas reducidas.
-- Cofres: niveles 5 y 15 (cofre), bosses (cofre épico), cofre diario.
-- Nivel de jugador: XP necesario = 80 + 40·(nivel−1).
-
-### Errores sin frustración
-- Feedback en una hoja inferior suave (no roja agresiva) con:
-  respuesta correcta, frase en inglés con audio y **por qué** (`tip`).
-- La frase fallada **vuelve al final de la misma partida** y se guarda como **Eco**.
-
-### Repetición inteligente (Ecos – sistema Leitner)
-- Fallo → caja 0, vencimiento inmediato.
-- Acierto en un Eco → sube de caja; intervalos: 0 · 4 h · 1 d · 3 d · 7 d.
-- Caja 5 → **dominada** (sale del sistema, cuenta para logros).
-- Cada partida inyecta hasta 3 Ecos vencidos (marcados con 🔮).
-- El Campamento ofrece **Santuario de Ecos** para repasar todo lo vencido.
-
-### Dificultad adaptable
-Precisión de las últimas 30 respuestas:
-- < 60 % → más "Elige", 3 opciones, más tiempo.
-- 60–85 % → mezcla equilibrada.
-- > 85 % → más "Forja" con señuelos y "Completa", menos tiempo.
-
-### Racha y misiones
-- La racha sube al completar al menos un nivel en un día nuevo.
-  Un día sin jugar la rompe, salvo que tengas **Escudo de racha** (se gasta solo).
-- 3 misiones diarias aleatorias y deterministas por fecha; completar las 3 abre
-  el **cofre diario**.
-
-### Inventario
-- **Objetos**: Pergamino de pista (elimina 2 opciones), Reloj de arena (+10 s),
-  Escudo de racha.
-- **Mascotas** (bonus pasivo): Pip (base), Brasa (+15 % monedas),
-  Nimbo (+15 % XP), Musgo (+5 s en retos de tiempo).
-- **Skins**: capas del héroe en distintos colores.
-- **Tienda** con monedas.
-
-### Logros (12)
-Primeros pasos, Racha de 3/7 días, Combo ×10, Nivel perfecto, Cazador de Ecos,
-Matagigantes (boss), Coleccionista (mascotas), Rico (500 monedas), Héroe nivel 5,
-Valle completado, Abrecofres.
-
----
-
-## 7. Hoja de ruta tras el MVP
-- Mundos 2–5 (Puerto Brisa, Desierto de Ámbar, Ciudad Reloj, Cumbres del Eco).
-- Ejercicio de escucha (sólo audio) y de dictado.
-- Cuentas + sincronización en la nube; ligas semanales.
-- PWA instalable con notificaciones de racha.
