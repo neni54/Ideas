@@ -292,7 +292,7 @@ export function ChestArt({ size = 120, open = false, tier = 'rare' }: { size?: n
   const body = tier === 'epic' ? '#7b2cbf' : tier === 'rare' ? '#c0713a' : '#a0704a';
   const metal = tier === 'epic' ? '#ffd166' : '#f4c542';
   return (
-    <svg viewBox="0 0 120 110" width={size} height={size * 0.92} aria-label="Cofre">
+    <svg viewBox="0 0 120 110" width={size} height={size * 0.92} aria-label="Cofre" style={{ overflow: "visible" }}>
       <ellipse cx="60" cy="104" rx="46" ry="6" fill="#000" opacity={0.2} />
       {open && (
         <g className="chest-rays">
