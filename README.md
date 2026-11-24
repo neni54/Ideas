@@ -51,9 +51,10 @@ tanto, no tiene traducción ni voz IA.
 
 - **75 expresiones originales en 15 colecciones**, cada una con traducción natural, nivel CEFR,
   contexto, matiz, tono, error típico, ejemplo extra, rival parecida y mini-reto.
-- **9 modos de juego**: What Does It Really Mean?, Catch the Sarcasm, Literal vs. Natural,
-  What Would You Say?, Context Detective, Complete the Conversation, Phrase Battle, Quick Fire
-  y Memory.
+- **11 modos de juego**: What Does It Really Mean?, Catch the Sarcasm, Literal vs. Natural,
+  What Would You Say?, Context Detective, Complete the Conversation, Phrase Battle, Quick Fire,
+  Memory y los modos premium **The Unexpected Twist** (30 escenas con giro final) y
+  **Voice Acting** (la misma frase con distintas interpretaciones de la voz IA).
 - **Lecciones continuas de 5 minutos** (repasos, novedades y una sorpresa) sin límite diario;
   solo una lección con 3 fallos pausa el contenido nuevo hasta el día siguiente, que empieza
   repasando lo fallado; frase del día;
@@ -73,6 +74,11 @@ npm run test:api    # servidor de IA contra un proveedor simulado (sin coste)
 ```
 
 ## Añadir contenido
+
+- Escenas de The Unexpected Twist: añade objetos a `SCENES` en `src/data/twists.ts`.
+- Frases de Voice Acting: añade objetos a `LINES` en `src/data/voiceacting.ts` (cada
+  interpretación usa un tono de `TONES` en `server/providers.mjs`).
+
 
 Crea un pack en `src/data/packs/` con `pack({...}, [...expresiones])` y añádelo a la lista de
 `src/data/content.ts`. Todos los modos se generan solos a partir de los campos de cada expresión.

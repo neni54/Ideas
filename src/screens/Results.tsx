@@ -2,7 +2,8 @@ import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { sfx } from '../audio/sfx';
 import { Btn, CountUp, Icon, Sheet } from '../components/ui';
-import { ALL, plain } from '../data/content';
+import { ALL } from '../data/content';
+import { describe } from '../data/extra';
 import { ACHIEVEMENTS, titleFor } from '../data/meta';
 import { verdict } from '../data/voice';
 import { useGame, useGate } from '../store/game';
@@ -49,15 +50,15 @@ export function Results() {
             {result.lockTriggered.mistakes === 3 ? 'Three mistakes.' : `${result.lockTriggered.mistakes} mistakes.`} Looks like a few expressions need more attention. Tomorrow we&rsquo;ll make sure you master them.
           </p>
           <p>
-            El contenido nuevo vuelve mañana (desde las 00:00 de tu hora local), y empezaremos repasando estas {result.lockTriggered.ids.length} expresiones. Hoy puedes seguir
+            El contenido nuevo vuelve mañana (desde las 00:00 de tu hora local), y empezaremos repasando {result.lockTriggered.ids.length === 1 ? 'esto' : `estos ${result.lockTriggered.ids.length} puntos`}. Hoy puedes seguir
             repasando lo que ya conoces, jugar a Memory y Quick Fire, y consultar tu colección.
           </p>
           <ul className="xlist">
             {result.lockTriggered.ids.map((id) => (
               <li key={id}>
-                <button onClick={() => openExpression(id)}>
-                  <span className="xlist-en">{plain(ALL[id].en)}</span>
-                  <span className="xlist-es">{ALL[id].gist}</span>
+                <button onClick={() => ALL[id] && openExpression(id)}>
+                  <span className="xlist-en">{describe(id)?.en}</span>
+                  <span className="xlist-es">{describe(id)?.es}</span>
                 </button>
               </li>
             ))}
@@ -140,9 +141,9 @@ export function Results() {
           <ul className="xlist">
             {result.newIds.map((id) => (
               <li key={id}>
-                <button onClick={() => openExpression(id)}>
-                  <span className="xlist-en">{plain(ALL[id].en)}</span>
-                  <span className="xlist-es">{ALL[id].es}</span>
+                <button onClick={() => ALL[id] && openExpression(id)}>
+                  <span className="xlist-en">{describe(id)?.en}</span>
+                  <span className="xlist-es">{describe(id)?.es}</span>
                 </button>
               </li>
             ))}
@@ -156,9 +157,9 @@ export function Results() {
           <ul className="xlist">
             {result.missedIds.map((id) => (
               <li key={id}>
-                <button onClick={() => openExpression(id)}>
-                  <span className="xlist-en">{plain(ALL[id].en)}</span>
-                  <span className="xlist-es">{ALL[id].gist}</span>
+                <button onClick={() => ALL[id] && openExpression(id)}>
+                  <span className="xlist-en">{describe(id)?.en}</span>
+                  <span className="xlist-es">{describe(id)?.es}</span>
                 </button>
               </li>
             ))}
@@ -167,7 +168,16 @@ export function Results() {
       )}
 
       <div className="row-actions sticky-actions">
-        {isQF || isMem ? (
+        {result.run.kind === 'twist' || result.run.kind === 'voice' ? (
+          <>
+            <Btn variant="ghost" onClick={() => quit()}>
+              Volver
+            </Btn>
+            <Btn onClick={() => start(result.run)}>
+              {result.run.kind === 'twist' ? 'Más escenas' : 'Más rondas'} <Icon name="arrow" size={16} />
+            </Btn>
+          </>
+        ) : isQF || isMem ? (
           <>
             <Btn variant="ghost" onClick={() => start(result.run)}>
               <Icon name="refresh" size={16} /> Otra vez

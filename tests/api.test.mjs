@@ -54,6 +54,12 @@ const n0 = log().filter((e) => e.url === '/v1/audio/speech').length;
 const many = await Promise.all([1, 2, 3, 4].map(() => post(M, '/api/tts', { text: 'Tell me about it.' + U, tone: 'casual' })));
 await Promise.all(many.map((x) => x.arrayBuffer()));
 ok('4 concurrent identical requests → 1 provider call', log().filter((e) => e.url === '/v1/audio/speech').length - n0 === 1, many.map((x) => x.headers.get('x-cache')).join(','));
+for (const tone of ['enthusiastic', 'warm', 'dry', 'indifferent', 'hurt', 'curious', 'suspicious', 'nervous', 'serious']) {
+  r = await post(M, '/api/tts', { text: 'Good for you.' + U, tone });
+  await r.arrayBuffer();
+  const sent = log().filter((e) => e.url === '/v1/audio/speech').pop();
+  ok(`Voice Acting tone "${tone}" accepted and sent as acting instructions`, r.status === 200 && sent.body.instructions.toLowerCase().includes(tone === 'indifferent' ? 'bored' : tone === 'curious' ? 'curious' : tone === 'serious' ? 'grave' : tone === 'hurt' ? 'hurt' : tone === 'dry' ? 'deadpan' : tone === 'warm' ? 'warm' : tone === 'nervous' ? 'nervous' : tone === 'suspicious' ? 'suspicious' : 'delighted'));
+}
 r = await post(M, '/api/tts', { text: 'Hi', tone: 'shouty' });
 ok('invalid tone → 400', r.status === 400);
 r = await post(M, '/api/tts', { text: 'Hi' + U, voice: 'partner' });

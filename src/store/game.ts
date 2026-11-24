@@ -11,15 +11,18 @@ import type { Challenge } from '../engine/challenges';
 import { weeklyPack } from '../engine/session';
 import { LEARNING_RUNS, afterReview, afterSession, gateFor, nextLocalMidnight, settle, type ReviewLock } from '../engine/gate';
 
-export type Screen = 'today' | 'library' | 'games' | 'phrases' | 'translate' | 'profile' | 'play' | 'quickfire' | 'memory' | 'results';
+export type Screen = 'today' | 'library' | 'games' | 'phrases' | 'translate' | 'profile' | 'play' | 'quickfire' | 'memory' | 'twist' | 'voice' | 'results';
 export type RunMode = Challenge['mode'];
+export type RunKind = Run['kind'];
 
 export type Run =
   | { kind: 'episode'; packId: string }
   | { kind: 'daily' }
   | { kind: 'practice'; mode: RunMode; packId?: string }
   | { kind: 'quickfire' }
-  | { kind: 'memory' };
+  | { kind: 'memory' }
+  | { kind: 'twist'; collection?: import('../data/twists').TwistCollection }
+  | { kind: 'voice' };
 
 export interface RunSummary {
   run: Run;
@@ -79,6 +82,8 @@ interface Persisted {
   hints: number;
   hintsDay: string;
   cards: Record<string, Card>;
+  /** Spaced repetition for Twist scenes and Voice Acting rounds (same rules as cards). */
+  extra: Record<string, Card>;
   packs: Record<string, { plays: number; best: number }>;
   byMode: Partial<Record<Mode, { a: number; c: number }>>;
   stats: {
@@ -141,6 +146,7 @@ interface Actions {
   start: (run: Run) => void;
   answer: (id: string, correct: boolean, o: { mode: RunMode; isRetry?: boolean; combo: number }) => { isNew: boolean };
   grade: (id: string, g: 0 | 1 | 2) => void;
+  answerExtra: (id: string, correct: boolean, o: { mode: 'twist' | 'voice'; combo: number }) => { isNew: boolean };
   finishRun: (s: RunSummary) => void;
   quit: () => void;
   savePhrase: (id: string) => void;
@@ -183,6 +189,7 @@ const initial = (): Persisted => ({
   hints: 3,
   hintsDay: dayKey(),
   cards: {},
+  extra: {},
   packs: {},
   byMode: {},
   stats: { answered: 0, correct: 0, bestCombo: 0, sessions: 0, perfect: 0, qfBest: 0, memoryReviews: 0, sarcasmCaught: 0, naturalRight: 0, c1Right: 0, nightOwl: false, minutes: 0 },
@@ -290,7 +297,7 @@ export const useGame = create<GameState>()(
         },
 
         start: (run) => {
-          const screen: Screen = run.kind === 'quickfire' ? 'quickfire' : run.kind === 'memory' ? 'memory' : 'play';
+          const screen: Screen = run.kind === 'quickfire' || run.kind === 'memory' || run.kind === 'twist' || run.kind === 'voice' ? run.kind : 'play';
           set({ run, screen, result: null, runId: get().runId + 1, openPack: null, openX: null });
         },
 
@@ -327,13 +334,37 @@ export const useGame = create<GameState>()(
 
         grade: (id, g) => {
           const s = get();
-          const card = s.cards[id] ?? newCard(Date.now());
+          const inExtra = !!s.extra[id] && !ALL[id];
+          const card = (inExtra ? s.extra[id] : s.cards[id]) ?? newCard(Date.now());
           set({
-            cards: { ...s.cards, [id]: onGrade(card, g, Date.now()) },
+            ...(inExtra ? { extra: { ...s.extra, [id]: onGrade(card, g, Date.now()) } } : { cards: { ...s.cards, [id]: onGrade(card, g, Date.now()) } }),
             reviewLock: g >= 1 ? afterReview(s.reviewLock, dayKey(), id) : s.reviewLock,
             stats: { ...s.stats, memoryReviews: s.stats.memoryReviews + 1 },
           });
           bump('memory', 1);
+        },
+
+        answerExtra: (id, correct, { mode, combo }) => {
+          const s = get();
+          const now = Date.now();
+          const isNew = !s.extra[id];
+          const bm = s.byMode[mode] ?? { a: 0, c: 0 };
+          set({
+            extra: { ...s.extra, [id]: onAnswer(s.extra[id], correct, now) },
+            reviewLock: correct ? afterReview(s.reviewLock, dayKey(), id) : s.reviewLock,
+            recent: [...s.recent, correct].slice(-30),
+            byMode: { ...s.byMode, [mode]: { a: bm.a + 1, c: bm.c + (correct ? 1 : 0) } },
+            stats: {
+              ...s.stats,
+              answered: s.stats.answered + 1,
+              correct: s.stats.correct + (correct ? 1 : 0),
+              bestCombo: Math.max(s.stats.bestCombo, combo),
+              sarcasmCaught: s.stats.sarcasmCaught + (correct && mode === 'voice' ? 1 : 0),
+            },
+          });
+          if (correct) bump('correct', 1);
+          bump('combo', combo, 'max');
+          return { isNew };
         },
 
         finishRun: (sum) => {
@@ -383,11 +414,14 @@ export const useGame = create<GameState>()(
           reviewLock = settle(reviewLock, today);
           const lockTriggered = isLearning && mistakes.length >= 3 ? { mistakes: mistakes.length, ids: mistakes } : undefined;
           let cards = s.cards;
+          let extra = s.extra;
           if (lockTriggered) {
             // Missed expressions come back first thing tomorrow (local midnight), as the start of the review.
             const due = nextLocalMidnight();
             cards = { ...s.cards };
             for (const id of mistakes) if (cards[id]) cards[id] = { ...cards[id], box: 0, due };
+            extra = { ...s.extra };
+            for (const id of mistakes) if (extra[id]) extra[id] = { ...extra[id], box: 0, due };
           }
           const reviewCleared = sum.gateAtStart === 'review-first' && gateFor(reviewLock, today).canLearnNew;
 
@@ -409,6 +443,7 @@ export const useGame = create<GameState>()(
             dailyDone: dailyFirst ? today : s.dailyDone,
             reviewLock,
             cards,
+            extra,
             lessons: s.lessons + (sum.run.kind === 'daily' ? 1 : 0),
             activity: Object.fromEntries(Object.entries({ ...s.activity, [today]: (s.activity[today] ?? 0) + totalXp }).slice(-60)),
             stats: {

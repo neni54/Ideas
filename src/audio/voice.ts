@@ -112,13 +112,21 @@ export function stop() {
 }
 
 /** Plays one clip or a sequence. Must be called from a user gesture (or right after one). */
-export async function play(clips: Clip[], label = clips[0]?.text ?? '') {
+export interface PlayOpts {
+  /** false: never fall back to the device voice (modes where the acting itself is the content). */
+  fallback?: boolean;
+}
+
+let lastOpts: PlayOpts = {};
+
+export async function play(clips: Clip[], label = clips[0]?.text ?? '', opts: PlayOpts = {}) {
   if (!clips.length) return;
   const my = ++token;
   const key = keyFor(clips);
   lastClips = clips;
   lastKey = key;
   lastLabel = label;
+  lastOpts = opts;
   const a = audio();
   a.pause();
   cancelBrowserSpeech();
@@ -137,7 +145,7 @@ export async function play(clips: Clip[], label = clips[0]?.text ?? '') {
       await playUrl(url, my);
     } catch (e) {
       if (my !== token) return;
-      if (aiUnavailable(e) && useGame.getState().settings.browserVoiceFallback && canBrowserSpeak()) {
+      if (opts.fallback !== false && aiUnavailable(e) && useGame.getState().settings.browserVoiceFallback && canBrowserSpeak()) {
         set({ fallbackReason: (e as Error).message });
         return playWithBrowser(clips.slice(i), my, i);
       }
@@ -183,15 +191,15 @@ export function resume() {
       .catch((e: Error) => set({ status: 'error', error: e.message }));
 }
 
-export const replay = () => lastClips.length && play(lastClips, lastLabel);
+export const replay = () => lastClips.length && play(lastClips, lastLabel, lastOpts);
 export const lastPlayedKey = () => lastKey;
 
 /** One button, three behaviours: play, pause, resume. */
-export function toggle(clips: Clip[], label?: string) {
+export function toggle(clips: Clip[], label?: string, opts: PlayOpts = {}) {
   const s = useAudio.getState();
   const key = keyFor(clips);
   if (s.key === key && s.status === 'playing') return pause();
   if (s.key === key && s.status === 'paused') return resume();
   if (s.key === key && s.status === 'loading') return stop();
-  return play(clips, label);
+  return play(clips, label, opts);
 }

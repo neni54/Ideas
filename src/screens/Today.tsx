@@ -9,6 +9,7 @@ import { dayKey } from '../engine/date';
 import { levelFromXp } from '../engine/progression';
 import { phraseOfTheDay, weeklyPack } from '../engine/session';
 import { dueIds } from '../engine/srs';
+import { kindOf } from '../data/extra';
 import { GOAL_PACKS, packMastery, useGame, useGate } from '../store/game';
 
 export function weekDays() {
@@ -20,6 +21,11 @@ export function weekDays() {
 export function Today() {
   const s = useGame();
   const gate = useGate();
+  const owed = { expression: 0, twist: 0, voice: 0 };
+  for (const id of gate.pending) {
+    const k = kindOf(id);
+    if (k) owed[k]++;
+  }
   const today = dayKey();
   const { level, into, need } = levelFromXp(s.xp);
   const potd = phraseOfTheDay(today);
@@ -77,7 +83,7 @@ export function Today() {
             <div className="eyebrow">Modo repaso · contenido nuevo mañana</div>
             <h2 className="serif-xl">A few expressions need more attention.</h2>
             <p className="daily-sub">
-              Mañana (desde las 00:00) empezamos por las {gate.pending.length} expresiones que se te resistieron. Hoy puedes seguir repasando todo lo que ya conoces.
+              Mañana (desde las 00:00) empezamos por {gate.pending.length === 1 ? 'lo que' : `las ${gate.pending.length} cosas que`} se te resistieron. Hoy puedes seguir repasando todo lo que ya conoces.
             </p>
             <Btn wide variant="secondary" onClick={() => s.start({ kind: 'daily' })} disabled={!Object.keys(s.cards).length}>
               Repasar lo aprendido <Icon name="arrow" size={16} />
@@ -88,12 +94,24 @@ export function Today() {
           <>
             <div className="eyebrow">Primero, el repaso de ayer</div>
             <h2 className="serif-xl">
-              {gate.pending.length} expresi{gate.pending.length === 1 ? 'ón' : 'ones'} y vía libre.
+              {gate.pending.length === 1 ? 'Una cosa' : `${gate.pending.length} cosas`} que repasar y vía libre.
             </h2>
             <p className="daily-sub">Acierta las que fallaste y el contenido nuevo vuelve en cuanto termines. Sin esperar a nada más.</p>
-            <Btn wide onClick={() => s.start({ kind: 'daily' })}>
-              Repasar ahora <Icon name="arrow" size={16} />
-            </Btn>
+            {owed.expression > 0 && (
+              <Btn wide onClick={() => s.start({ kind: 'daily' })}>
+                Repasar {owed.expression} expresi{owed.expression === 1 ? 'ón' : 'ones'} <Icon name="arrow" size={16} />
+              </Btn>
+            )}
+            {owed.twist > 0 && (
+              <Btn wide variant={owed.expression ? 'secondary' : 'primary'} onClick={() => s.start({ kind: 'twist' })}>
+                Repasar {owed.twist} escena{owed.twist === 1 ? '' : 's'} de The Unexpected Twist
+              </Btn>
+            )}
+            {owed.voice > 0 && (
+              <Btn wide variant={owed.expression || owed.twist ? 'secondary' : 'primary'} onClick={() => s.start({ kind: 'voice' })}>
+                Repasar {owed.voice} ronda{owed.voice === 1 ? '' : 's'} de Voice Acting
+              </Btn>
+            )}
           </>
         )}
       </motion.section>

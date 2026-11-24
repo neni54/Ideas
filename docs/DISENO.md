@@ -152,3 +152,41 @@ resultados no ofrecían una lección siguiente. Ahora:
 - **Estado por expresión**: Nueva · Aprendiendo · Necesita repaso · Dominada (filtros en Frases).
   Las falladas vuelven antes (Leitner caja 0) y las acertadas se espacian; las dominadas solo
   rellenan una lección cuando no queda nada mejor que practicar.
+
+---
+
+## 9. Modos premium: The Unexpected Twist y Voice Acting (v2.3)
+
+Dos juegos independientes, con contenido escrito y audio real; sin chat ni personajes de IA.
+
+**The Unexpected Twist** (`src/data/twists.ts`, `src/screens/Twist.tsx`)
+- 30 escenas originales en 6 colecciones (Dating Disasters, Friends & Social Drama, Office
+  Politics, Awkward Moments, Sarcasm & Wit, Everyday Situations), B1–C1.
+- Formato de guion: acotación, diálogo que aparece línea a línea y "el giro" final. Cuatro
+  lecturas posibles; al responder: la lectura correcta, el subtexto en español, la expresión clave
+  con voz IA (con el tono de la escena) y otro ejemplo original con traducción.
+- Cada escena: `setting`, `lines`, `twist`, `key`, `tone`, `options[4]`, `answer`, `explain`, `ex`.
+
+**Voice Acting** (`src/data/voiceacting.ts`, `src/screens/VoiceActing.tsx`)
+- 12 frases × 3 interpretaciones = 36 rondas. Cada interpretación se genera con instrucciones de
+  actuación propias (`server/providers.mjs` → `TONES`: enthusiastic, warm, sarcastic, dry,
+  indifferent, hurt, curious, suspicious, nervous, serious…), nunca cambiando solo la velocidad.
+  El botón 0.7× pide una toma lenta de la misma interpretación.
+- Las respuestas se desbloquean cuando el audio ha empezado a sonar. Tras responder se pueden
+  comparar las tres interpretaciones de la misma frase. Cada sesión incluye al menos una frase
+  oída de dos maneras.
+- Sin voz IA configurada, el modo lo explica y no arranca: la voz del dispositivo no interpreta
+  emociones y daría audio engañoso. Por eso en este modo el respaldo con la voz del dispositivo
+  está desactivado.
+
+**Integración**
+- XP según el nivel; precisión por modo (`byMode.twist`, `byMode.voice`) visible en Perfil.
+- Escenas y rondas viven en el mismo sistema de repetición espaciada (`store.extra`) y aparecen en
+  Memory; las falladas vuelven antes.
+- Cuentan para la regla de los 3 fallos (fallos distintos por sesión). Con la pausa activa solo se
+  rejuega lo ya visto; al día siguiente Hoy ofrece repasar primero lo pendiente de cada modo.
+
+**Limitación conocida:** la diferencia emocional depende de cómo el proveedor de voz interprete
+las instrucciones. `gpt-4o-mini-tts` las acepta por petición, pero no se ha podido escuchar el
+resultado real en este entorno (sin clave válida). Si alguna interpretación sonara demasiado
+parecida, se ajusta su texto en `TONES` sin tocar el resto.

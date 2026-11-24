@@ -13,7 +13,7 @@ export interface Option {
 
 export interface Challenge {
   uid: string;
-  mode: Exclude<Mode, 'quickfire' | 'memory'>;
+  mode: Exclude<Mode, 'quickfire' | 'memory' | 'twist' | 'voice'>;
   x: Expression;
   options: Option[];
   isReview?: boolean;

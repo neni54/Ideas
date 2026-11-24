@@ -6,6 +6,7 @@ import { IN_RUN_MODES, MODES, MODE_BY_ID } from '../data/meta';
 import { dueIds } from '../engine/srs';
 import { packMastery, playerLevel, useGame, useGate, type RunMode } from '../store/game';
 import { packHasNew } from '../engine/session';
+import { TWIST_COLLECTIONS } from '../data/twists';
 
 /* ───────────── Library ───────────── */
 
@@ -122,8 +123,8 @@ export function Games() {
   const due = dueIds(s.cards, Date.now()).length;
   return (
     <div className="screen games">
-      <div className="eyebrow">Juegos · 9 modos</div>
-      <h1 className="display">Same phrases. Nine ways to get them wrong.</h1>
+      <div className="eyebrow">Juegos · 11 modos</div>
+      <h1 className="display">Same phrases. Eleven ways to get them wrong.</h1>
       <p className="muted lead">Cada modo entrena una habilidad distinta. Las expresiones salen de tus colecciones abiertas.</p>
       {!gate.canLearnNew && <p className="locked-note">Modo repaso: hoy los juegos usan solo expresiones que ya has visto. El contenido nuevo vuelve {gate.state === 'review-first' ? 'al terminar el repaso de ayer' : 'mañana'}.</p>}
       <div className="feature-row">
@@ -140,8 +141,29 @@ export function Games() {
           <span className="feature-stat">{due ? `${due} pendientes` : 'Al día'}</span>
         </button>
       </div>
+      <section className="premium">
+        <button className="premium-card twist-card" onClick={() => s.start({ kind: 'twist' })}>
+          <span className="eyebrow">Nuevo · escenas</span>
+          <b>The Unexpected Twist</b>
+          <small>Escenas cortas, un diálogo y una última frase que no significa lo que dice.</small>
+          <span className="feature-stat">{s.byMode.twist?.a ? `${Math.round((s.byMode.twist.c / s.byMode.twist.a) * 100)}% aciertos` : '30 escenas originales'}</span>
+        </button>
+        <div className="twist-cols">
+          {TWIST_COLLECTIONS.map((c) => (
+            <button key={c.id} className="twist-col" style={{ ['--p1' as string]: c.colors[0], ['--p2' as string]: c.colors[1] }} onClick={() => s.start({ kind: 'twist', collection: c.id })}>
+              {c.title}
+            </button>
+          ))}
+        </div>
+        <button className="premium-card voice-card" onClick={() => s.start({ kind: 'voice' })}>
+          <span className="eyebrow">Nuevo · audio</span>
+          <b>Voice Acting</b>
+          <small>La misma frase, dicha de otra forma, significa otra cosa. Escucha y decide.</small>
+          <span className="feature-stat">{s.byMode.voice?.a ? `${Math.round((s.byMode.voice.c / s.byMode.voice.a) * 100)}% aciertos` : '12 frases · 36 interpretaciones'}</span>
+        </button>
+      </section>
       <ul className="mode-list">
-        {MODES.filter((m) => m.id !== 'quickfire' && m.id !== 'memory').map((m, i) => {
+        {MODES.filter((m) => !['quickfire', 'memory', 'twist', 'voice'].includes(m.id)).map((m, i) => {
           const st = s.byMode[m.id];
           return (
             <motion.li key={m.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }}>

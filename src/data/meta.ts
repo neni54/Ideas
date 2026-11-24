@@ -1,6 +1,6 @@
 import type { Intent, Tag } from './types';
 
-export type Mode = 'meaning' | 'sarcasm' | 'natural' | 'reply' | 'detective' | 'complete' | 'battle' | 'quickfire' | 'memory';
+export type Mode = 'meaning' | 'sarcasm' | 'natural' | 'reply' | 'detective' | 'complete' | 'battle' | 'quickfire' | 'memory' | 'twist' | 'voice';
 
 export interface ModeInfo {
   id: Mode;
@@ -20,6 +20,8 @@ export const MODES: ModeInfo[] = [
   { id: 'battle', title: 'Phrase Battle', es: 'Duelo de frases', desc: 'Dos expresiones parecidas. Solo una encaja de verdad.', glyph: 'vs' },
   { id: 'quickfire', title: 'Quick Fire', es: 'Ráfaga', desc: '60 segundos. Sí o no. Instinto puro.', glyph: '⚡︎' },
   { id: 'memory', title: 'Memory Mode', es: 'Memoria', desc: 'Repaso espaciado de lo que estás a punto de olvidar.', glyph: '◐' },
+  { id: 'twist', title: 'The Unexpected Twist', es: 'El giro inesperado', desc: 'Escenas cortas con una última frase que no significa lo que dice.', glyph: '↯' },
+  { id: 'voice', title: 'Voice Acting', es: 'Interpretación', desc: 'La misma frase, dicha de otra forma, significa otra cosa. Escucha y decide.', glyph: '♪' },
 ];
 export const MODE_BY_ID = Object.fromEntries(MODES.map((m) => [m.id, m])) as Record<Mode, ModeInfo>;
 export const IN_RUN_MODES: Mode[] = ['meaning', 'sarcasm', 'natural', 'reply', 'detective', 'complete', 'battle'];

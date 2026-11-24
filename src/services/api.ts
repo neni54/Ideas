@@ -11,7 +11,9 @@ export class ApiError extends Error {
   }
 }
 
-export type Tone = 'neutral' | 'casual' | 'sarcastic' | 'passive_aggressive' | 'amused' | 'frustrated' | 'confident' | 'flirtatious' | 'surprised' | 'professional' | 'evasive';
+export type Tone =
+  | 'neutral' | 'casual' | 'sarcastic' | 'passive_aggressive' | 'amused' | 'frustrated' | 'confident' | 'flirtatious' | 'surprised' | 'professional' | 'evasive'
+  | 'enthusiastic' | 'warm' | 'dry' | 'indifferent' | 'hurt' | 'curious' | 'suspicious' | 'nervous' | 'serious';
 
 export interface ServiceStatus {
   translate: { ready: boolean; provider: string; missing: string | null };

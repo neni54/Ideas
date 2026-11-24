@@ -137,15 +137,17 @@ export function buildQuickFire(level: number, count = 60): QuickItem[] {
 
 /* ───── Memory ───── */
 
-export function buildMemory(cards: Record<string, Card>, now = Date.now()): Expression[] {
-  const due = dueIds(cards, now).filter((id) => ALL[id]).slice(0, 12);
+/** Ids for a Memory session: expressions, Twist scenes and Voice Acting rounds share one queue. */
+export function buildMemory(cards: Record<string, Card>, extra: Record<string, Card> = {}, now = Date.now(), valid: (id: string) => boolean = (id) => !!ALL[id]): string[] {
+  const all: Record<string, Card> = { ...extra, ...cards };
+  const due = dueIds(all, now).filter(valid).slice(0, 12);
   // Short on due cards: top up with the weakest ones so a session is worth opening.
-  const weakest = Object.entries(cards)
-    .filter(([id]) => ALL[id] && !due.includes(id))
+  const weakest = Object.entries(all)
+    .filter(([id]) => valid(id) && !due.includes(id))
     .sort((a, b) => a[1].box - b[1].box || a[1].due - b[1].due)
     .map(([id]) => id)
     .slice(0, Math.max(0, 6 - due.length));
-  return [...due, ...weakest].map((id) => ALL[id]);
+  return [...due, ...weakest];
 }
 
 /* ───── Daily content ───── */
@@ -163,3 +165,75 @@ export function weeklyPack(day: string, level: number) {
 }
 
 export type { Mode };
+
+/* ───── The Unexpected Twist & Voice Acting ───── */
+
+import { SCENES, type TwistCollection, type TwistScene } from '../data/twists';
+import { LINES, roundId, parseRound, type Delivery, type VoiceLine } from '../data/voiceacting';
+
+export interface TwistRound {
+  scene: TwistScene;
+  /** Options in display order, with the index of the right one. */
+  order: number[];
+  isReview: boolean;
+}
+
+const LEVEL_FOR: Record<Diff, string> = { 0: 'B1', 1: 'B2', 2: 'C1' };
+
+/** Due reviews first (owed ones before anything), then unseen scenes (when new content is allowed). */
+export function buildTwist(extra: Record<string, Card>, diff: Diff, opts: BuildOpts & { collection?: TwistCollection } = {}, now = Date.now()): TwistRound[] {
+  const pool = SCENES.filter((s) => !opts.collection || s.col === opts.collection);
+  const priority = (opts.priority ?? []).map((id) => pool.find((s) => s.id === id)).filter(Boolean) as TwistScene[];
+  const due = pool.filter((s) => extra[s.id] && extra[s.id].due <= now && !priority.includes(s));
+  const fresh =
+    opts.allowNew === false
+      ? []
+      : shuffle(pool.filter((s) => !extra[s.id])).sort((a, b) => Number(b.level === LEVEL_FOR[diff]) - Number(a.level === LEVEL_FOR[diff]));
+  const known = shuffle(pool.filter((s) => extra[s.id] && !due.includes(s) && !priority.includes(s))).sort((a, b) => extra[a.id].box - extra[b.id].box);
+  const picked = [...priority, ...shuffle(due), ...fresh, ...known].slice(0, Math.max(5, priority.length));
+  return picked.map((scene) => ({ scene, order: shuffle([0, 1, 2, 3]), isReview: !!extra[scene.id] }));
+}
+
+export interface VoiceRound {
+  line: VoiceLine;
+  delivery: Delivery;
+  /** Four intentions: the right one, the line's other deliveries and a decoy. */
+  options: string[];
+  isReview: boolean;
+}
+
+export function voiceRound(line: VoiceLine, delivery: Delivery, isReview: boolean): VoiceRound {
+  const others = line.deliveries.filter((d) => d.id !== delivery.id).map((d) => d.intent);
+  return { line, delivery, options: shuffle([delivery.intent, ...others, line.decoy]), isReview };
+}
+
+/**
+ * Six rounds. One line appears twice with different deliveries, so the player hears the
+ * same words change meaning inside a single session.
+ */
+export function buildVoice(extra: Record<string, Card>, opts: BuildOpts = {}, now = Date.now()): VoiceRound[] {
+  const all = LINES.flatMap((l) => l.deliveries.map((d) => ({ l, d, id: roundId(l.id, d.id) })));
+  const prio = (opts.priority ?? []).map((id) => all.find((r) => r.id === id)).filter(Boolean) as typeof all;
+  const due = all.filter((r) => extra[r.id] && extra[r.id].due <= now && !prio.includes(r));
+  const fresh = opts.allowNew === false ? [] : shuffle(all.filter((r) => !extra[r.id]));
+  const known = shuffle(all.filter((r) => extra[r.id] && !due.includes(r) && !prio.includes(r))).sort((a, b) => extra[a.id].box - extra[b.id].box);
+  const out: typeof all = [];
+  const perLine = new Map<string, number>();
+  for (const r of [...prio, ...shuffle(due), ...fresh, ...known]) {
+    if (out.length >= Math.max(6, prio.length)) break;
+    const n = perLine.get(r.l.id) ?? 0;
+    if (n >= 2 || out.includes(r)) continue;
+    perLine.set(r.l.id, n + 1);
+    out.push(r);
+  }
+  // Make sure at least one line is heard in two different ways (when the pool allows it).
+  if (![...perLine.values()].some((n) => n === 2) && opts.allowNew !== false) {
+    const first = out.find((r) => !prio.includes(r));
+    const twin = first && first.l.deliveries.find((d) => d.id !== first.d.id);
+    if (first && twin && out.length && !prio.includes(out[out.length - 1])) out[out.length - 1] = { l: first.l, d: twin, id: roundId(first.l.id, twin.id) };
+  }
+  // Keep the two takes of the same line apart.
+  return out.map((r) => voiceRound(r.l, r.d, !!extra[r.id]));
+}
+
+export { parseRound };

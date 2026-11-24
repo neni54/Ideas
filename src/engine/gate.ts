@@ -6,7 +6,7 @@ import { MASTER_BOX } from './srs';
 export const MISTAKE_LIMIT = 3;
 
 /** Sessions that teach (and can therefore trigger the review rule). Memory and Quick Fire are drills. */
-export const LEARNING_RUNS = ['daily', 'episode', 'practice'] as const;
+export const LEARNING_RUNS = ['daily', 'episode', 'practice', 'twist', 'voice'] as const;
 
 export interface ReviewLock {
   /** Local calendar day (YYYY-MM-DD) on which the 3-mistake session happened. */

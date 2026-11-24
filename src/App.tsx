@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import { ExpressionSheet } from './components/ExpressionCard';
 import { AudioBar } from './components/Speak';
 import { Translate } from './screens/Translate';
+import { Twist } from './screens/Twist';
+import { VoiceActing } from './screens/VoiceActing';
 import { useServices } from './services/api';
 import { BottomNav, Toasts } from './components/ui';
 import { Games, Library, PackSheet } from './screens/Browse';
@@ -80,7 +82,7 @@ export default function App() {
       </div>
     );
 
-  const immersive = ['play', 'quickfire', 'memory', 'results'].includes(screen);
+  const immersive = ['play', 'quickfire', 'memory', 'twist', 'voice', 'results'].includes(screen);
   const views: Record<string, JSX.Element> = {
     today: <Today />,
     library: <Library />,
@@ -91,11 +93,13 @@ export default function App() {
     play: <Play key={runId} />,
     quickfire: <QuickFire key={runId} />,
     memory: <Memory key={runId} />,
+    twist: <Twist key={runId} />,
+    voice: <VoiceActing key={runId} />,
     results: <Results />,
   };
 
   return (
-    <div className={`app ${immersive ? 'immersive' : ''}`}>
+    <div className={`app ${immersive ? 'immersive' : ''} ${screen === 'voice' ? 'on-voice' : ''}`}>
       <AnimatePresence mode="wait">
         <motion.div key={screen + (immersive ? runId : '')} className="view" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
           {views[screen]}

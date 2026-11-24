@@ -4,9 +4,10 @@ import { sfx } from '../audio/sfx';
 import { Highlight } from '../components/ExpressionCard';
 import { Speak, toneFor } from '../components/Speak';
 import { Bar, Btn, Dots, Icon, Ring } from '../components/ui';
-import { plain } from '../data/content';
 import { difficulty } from '../engine/progression';
 import { buildMemory, buildQuickFire } from '../engine/session';
+import { ALL } from '../data/content';
+import { kindOf, memoryItem, type MemoryItem } from '../data/extra';
 import { playerLevel, useGame } from '../store/game';
 
 /* ───────────── Quick Fire ───────────── */
@@ -139,7 +140,13 @@ export function QuickFire() {
 
 export function Memory() {
   const store = useGame();
-  const deck = useMemo(() => buildMemory(useGame.getState().cards), []);
+  const deck = useMemo(() => {
+    const st = useGame.getState();
+    const tone = (id: string) => (ALL[id] ? toneFor(ALL[id]) : 'casual');
+    return buildMemory(st.cards, st.extra, Date.now(), (id) => !!kindOf(id))
+      .map((id) => memoryItem(id, tone))
+      .filter(Boolean) as MemoryItem[];
+  }, []);
   const [i, setI] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const acc = useRef({ knew: 0, xp: 0, missed: [] as string[], t0: Date.now() });
@@ -183,7 +190,7 @@ export function Memory() {
       </div>
     );
 
-  const card = store.cards[x.id];
+  const card = store.cards[x.id] ?? store.extra[x.id];
   return (
     <div className="screen memory">
       <header className="play-top">
@@ -195,11 +202,13 @@ export function Memory() {
           {i + 1}/{deck.length}
         </span>
       </header>
-      <div className="eyebrow">◐ Memory · repaso espaciado</div>
+      <div className="eyebrow">◐ Memory · {x.kind === 'twist' ? 'escena de The Unexpected Twist' : x.kind === 'voice' ? 'ronda de Voice Acting' : 'repaso espaciado'}</div>
       <div className={`flip ${flipped ? 'is-flipped' : ''}`}>
         <div className="flip-inner">
-          <button
+          <div
             className="face front"
+            role="button"
+            tabIndex={0}
             onClick={() => {
               setFlipped(true);
               sfx.flip();
@@ -210,22 +219,27 @@ export function Memory() {
               <span className={`lvl lvl-${x.level}`}>{x.level}</span>
               {card && <Dots value={card.box} />}
             </div>
-            <p className="face-en">
-              <Highlight en={x.en} />
-            </p>
-            <p className="face-hint">¿Qué significa y cuándo lo usarías? Piénsalo, luego toca para girar.</p>
-          </button>
+            <p className="face-en">{x.kind === 'expression' ? <Highlight en={x.front} /> : `“${x.front}”`}</p>
+            {x.kind === 'voice' && (
+              <span className="face-audio">
+                <Speak clips={[x.audio]} label={x.front} />
+              </span>
+            )}
+            <p className="face-hint">{x.hint}</p>
+          </div>
           <div className="face back">
             <div className="face-meta">
               <span className={`lvl lvl-${x.level}`}>{x.level}</span>
-              <Speak clips={[{ text: plain(x.en), tone: toneFor(x) }]} />
+              <Speak clips={[x.audio]} label={x.audio.text} />
             </div>
-            <p className="face-es">{x.es}</p>
-            <p className="face-gist">{x.gist}</p>
-            <p className="face-ex">
-              {x.ex[0]}
-              <span>{x.ex[1]}</span>
-            </p>
+            <p className="face-es">{x.back}</p>
+            <p className="face-gist">{x.note}</p>
+            {x.ex && (
+              <p className="face-ex">
+                {x.ex[0]}
+                <span>{x.ex[1]}</span>
+              </p>
+            )}
           </div>
         </div>
       </div>

@@ -214,6 +214,16 @@ export const TONES = {
   surprised: 'Delivery: genuinely surprised, rising energy, a little disbelief.',
   professional: 'Delivery: professional and composed, like a meeting at work; polite, clear and measured.',
   evasive: 'Delivery: noncommittal and polite, a little hesitant, keeping your options open.',
+  // Voice Acting deliveries: the same words must sound clearly different from one another.
+  enthusiastic: 'Delivery: genuinely delighted and enthusiastic. Bright, rising intonation, high energy, a big smile you can hear. You truly mean every word.',
+  warm: 'Delivery: warm, sincere and kind. Soft, open voice, gentle smile, unhurried. Completely genuine, no irony at all.',
+  dry: 'Delivery: bone-dry, deadpan irony. Flat, low energy, almost monotone, slightly quick, like a weary sigh. Resigned rather than angry.',
+  indifferent: 'Delivery: bored and indifferent. Flat, quiet, low energy, minimal intonation, as if you are thinking about something else. Polite on autopilot.',
+  hurt: 'Delivery: quietly hurt and disappointed. Lower, softer voice that trails off, a small pause before speaking, a hint of sadness. Not shouting.',
+  curious: 'Delivery: genuinely curious and intrigued. Rising, drawn-out intonation, leaning in, wanting to hear more.',
+  suspicious: 'Delivery: suspicious and doubtful. Slow, low, drawn-out, with a deliberate pause; you do not believe what you just heard.',
+  nervous: 'Delivery: nervous and anxious. Slightly shaky, hesitant, a quick nervous laugh or breath, words a little rushed.',
+  serious: 'Delivery: grave and serious. Slow, low, steady, no smile at all; something important and unpleasant is coming.',
 };
 
 const BASE_VOICE =
