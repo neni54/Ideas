@@ -1,6 +1,6 @@
 // THE UNEXPECTED TWIST — short original scenes with a final line that means more than it says.
 // To add scenes: append to SCENES with a unique id. Everything else (sessions, review, stats) is automatic.
-import type { Cefr } from './types';
+import type { Cefr, Tier } from './types';
 import type { Tone } from '../services/api';
 
 export type TwistCollection = 'dating' | 'friends' | 'office' | 'awkward' | 'sarcasm' | 'everyday';
@@ -18,6 +18,8 @@ export interface TwistScene {
   id: string;
   col: TwistCollection;
   level: Cefr;
+  /** SIDEYE level (optional; derived from `level`). */
+  tier?: Tier;
   /** Stage direction, in English. */
   setting: string;
   /** The exchange before the twist: [speaker, line]. */
@@ -41,6 +43,69 @@ export interface TwistScene {
 const s = (x: TwistScene) => x;
 
 export const SCENES: TwistScene[] = [
+  /* ───── Easy scenes (FIRST STEPS → REAL-LIFE ENGLISH): short sentences, everyday words ───── */
+  s({
+    id: 'tw-easy-1', col: 'everyday', level: 'A1', tier: 1,
+    setting: 'Monday morning. Sam opens the fridge. There is no milk.',
+    lines: [['Mom', 'Good morning! Do you want cereal?']],
+    twist: ['Sam', 'Cereal with... water? No, thank you.'], key: 'No, thank you.', tone: 'dry',
+    question: 'Why does Sam say no?',
+    options: ['There is no milk, and cereal with water is not good.', 'Sam does not like breakfast.', 'Sam wants more water.', 'Sam is not hungry.'],
+    answer: 0,
+    explain: 'No hay leche. "Cereal with water?" es una broma: a nadie le apetecen los cereales con agua. "No, thank you" = no, gracias.',
+    ex: ['Coffee with no coffee? No, thank you.', '¿Café sin café? No, gracias.'],
+  }),
+  s({
+    id: 'tw-easy-2', col: 'friends', level: 'A1', tier: 1,
+    setting: 'Ana shows her friend a very big, very orange hat.',
+    lines: [['Ana', 'Do you like my new hat?']],
+    twist: ['Leo', "Wow. It's very... orange."], key: "It's very orange.", tone: 'dry',
+    options: ["Leo doesn't love the hat, but he is polite.", 'Leo wants the same hat.', 'Leo thinks the hat is red.', 'Leo loves the color orange.'],
+    answer: 0,
+    explain: 'Cuando alguien solo dice algo obvio ("es muy... naranja") con una pausa, normalmente no le gusta pero no quiere decirlo. Es una forma educada de no opinar.',
+    ex: ['Your cake is very... interesting.', 'Tu tarta es muy... interesante (o sea, no me gusta).'],
+  }),
+  s({
+    id: 'tw-easy-3', col: 'sarcasm', level: 'A2', tier: 2,
+    setting: 'It is raining a lot. Mia and Tom are waiting for the bus. Tom is very wet.',
+    lines: [['Mia', 'What a day!']],
+    twist: ['Tom', 'Great weather for a picnic!'], key: 'Great weather for a picnic!', tone: 'sarcastic',
+    options: ['The weather is terrible, and Tom is joking.', 'Tom wants to have a picnic now.', 'Tom loves the rain.', 'Tom thinks it is sunny.'],
+    answer: 0,
+    explain: 'Un sarcasmo fácil: dice lo contrario de lo que pasa. Con lluvia, "great weather for a picnic" significa "qué tiempo tan horrible".',
+    ex: ['Oh, perfect. My train is late again.', 'Genial, perfecto. Mi tren vuelve a ir con retraso.'],
+  }),
+  s({
+    id: 'tw-easy-4', col: 'office', level: 'A2', tier: 2,
+    setting: 'Friday, 5:58 p.m. Everyone is leaving. The boss walks in with a big box of papers.',
+    lines: [['Boss', 'Hey Kim! Do you have a minute?']],
+    twist: ['Kim', 'Sure... I love Friday evenings at the office.'], key: 'I love Friday evenings at the office.', tone: 'sarcastic',
+    options: ['Kim does not want to stay, but she says yes.', 'Kim really loves working on Fridays.', 'Kim is happy to see the boss.', 'Kim is going home now.'],
+    answer: 0,
+    explain: 'A nadie le encanta quedarse en la oficina el viernes a las 18:00. Kim acepta ("Sure"), pero el resto es ironía: está fastidiada.',
+    ex: ['Work on Sunday? My favorite!', '¿Trabajar el domingo? ¡Mi plan favorito! (o sea, qué rollo)'],
+  }),
+  s({
+    id: 'tw-easy-5', col: 'dating', level: 'A2', tier: 2,
+    setting: 'First date. Jake talks about his ex for forty minutes.',
+    lines: [['Jake', 'And then my ex said... oh, sorry. Am I talking too much?']],
+    twist: ['Rosa', 'No, no. Please, tell me more about her.'], key: 'Tell me more about her.', tone: 'dry',
+    options: ['Rosa is bored and a little annoyed.', 'Rosa wants to meet his ex.', 'Rosa is very interested in the story.', 'Rosa is the ex.'],
+    answer: 0,
+    explain: 'Después de cuarenta minutos hablando de su ex, "cuéntame más" es ironía: Rosa está harta. Con tono seco, una frase amable puede significar lo contrario.',
+    ex: ['Another selfie? Please, take ten more.', '¿Otro selfi? Venga, hazte diez más (o sea, para ya).'],
+  }),
+  s({
+    id: 'tw-easy-6', col: 'awkward', level: 'B1', tier: 3,
+    setting: 'At the supermarket, Dan says hi to a woman. She does not know him.',
+    lines: [['Dan', 'Hey! How are you? How is your dog?'], ['Woman', 'Sorry... do I know you?']],
+    twist: ['Dan', 'Oh! My bad. You look just like my neighbor.'], key: 'My bad.', tone: 'nervous',
+    question: 'What is Dan saying?',
+    options: ['Sorry, I made a mistake: I thought you were someone else.', 'You are a bad person.', 'I am your neighbor.', 'Your dog is bad.'],
+    answer: 0,
+    explain: '"My bad" = culpa mía. Dan se ha confundido de persona y se disculpa rápido y de forma informal. "You look just like..." = te pareces muchísimo a...',
+    ex: ['My bad, wrong number!', '¡Perdona, me he equivocado de número!'],
+  }),
   /* ───── Dating Disasters ───── */
   s({
     id: 'tw-dat-1', col: 'dating', level: 'B1',

@@ -1,3 +1,5 @@
+import { LevelTag } from '../components/LevelTag';
+import { XP_BY_TIER, tierOf } from '../data/levels';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { play as playVoice, stop as stopVoice } from '../audio/voice';
@@ -10,7 +12,7 @@ import { INTENT_LABEL, MODE_BY_ID } from '../data/meta';
 import { say } from '../data/voice';
 import { retryOf, type Challenge, type Option } from '../engine/challenges';
 import { shuffle } from '../engine/date';
-import { XP_BY_LEVEL, XP_COMBO_BONUS, XP_RETRY, difficulty } from '../engine/progression';
+import { XP_COMBO_BONUS, XP_RETRY, difficulty } from '../engine/progression';
 import { buildDaily, buildEpisode, buildPractice } from '../engine/session';
 import { ModeView } from '../modes/Modes';
 import { playerLevel, useGame, type Run } from '../store/game';
@@ -89,7 +91,7 @@ export function Play() {
       setIsNew(fresh);
       if (ok) {
         if (!c.isRetry) a.firstTry++;
-        a.xp += c.isRetry ? XP_RETRY : XP_BY_LEVEL[c.x.level] + (nextCombo >= 3 ? XP_COMBO_BONUS : 0);
+        a.xp += c.isRetry ? XP_RETRY : XP_BY_TIER[tierOf(c.x)] + (nextCombo >= 3 ? XP_COMBO_BONUS : 0);
         nextCombo >= 3 && nextCombo % 3 === 0 ? sfx.streak() : sfx.correct();
         setLine(say(c.isRetry ? 'retry' : nextCombo >= 3 ? 'streak' : c.mode === 'sarcasm' ? 'tone' : c.mode === 'natural' ? 'natural' : 'correct'));
       } else {
@@ -188,7 +190,7 @@ export function Play() {
                 {c.isReview && <span className="flag">Repaso</span>}
                 {c.isRetry && <span className="flag">Segunda oportunidad</span>}
                 {c.isSurprise && <span className="flag flag-accent">Sorpresa · {PACK_BY_ID[c.x.pack].title}</span>}
-                <span className={`lvl lvl-${c.x.level}`}>{c.x.level}</span>
+                <LevelTag item={c.x} />
               </div>
             </div>
             {canHint && (

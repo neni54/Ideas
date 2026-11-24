@@ -17,7 +17,8 @@
     "ios:sync": "npm run build:ios && cap sync ios",
     "ios:open": "cap open ios",
     "test:badges": "npx --yes tsx --tsconfig tsconfig.json tests/badges.test.tsx",
-    "test:tokens": "bash tests/run-tokens-tests.sh"
+    "test:tokens": "bash tests/run-tokens-tests.sh",
+    "test:levels": "npx --yes tsx --tsconfig tsconfig.json tests/levels.test.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "1.6.0",

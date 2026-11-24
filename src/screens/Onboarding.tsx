@@ -42,7 +42,7 @@ export function Onboarding() {
               <em>Now get the meaning.</em>
             </h1>
             <p className="lead">{BRAND.message}</p>
-            <p className="muted ob-es">Sarcasmo, indirectas, humor y referencias culturales: el inglés que se dice de verdad. De B1 a C1.</p>
+            <p className="muted ob-es">Sarcasmo, indirectas, humor y referencias culturales: el inglés que se dice de verdad. Empiezas fácil (A1) y subes a tu ritmo hasta C1.</p>
             <div className="demo">
               <AnimatePresence mode="wait">
                 <motion.div key={demo} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }}>

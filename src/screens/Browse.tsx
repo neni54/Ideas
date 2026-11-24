@@ -1,4 +1,7 @@
+import { LevelTag } from '../components/LevelTag';
 import { motion } from 'framer-motion';
+import { LEVELS } from '../data/levels';
+import { currentLevel, levelStats } from '../engine/levelProgress';
 import { Poster } from '../components/Poster';
 import { Btn, Dots, Icon, Ring, Sheet } from '../components/ui';
 import { PACKS, PACK_BY_ID, plain } from '../data/content';
@@ -11,24 +14,45 @@ import { TWIST_COLLECTIONS } from '../data/twists';
 /* ───────────── Library ───────────── */
 
 export function Library() {
-  const { cards, xp, openPackSheet } = useGame();
-  const level = playerLevel(xp);
-  const open = PACKS.filter((p) => p.unlock <= level).length;
+  const { cards, openPackSheet } = useGame();
+  const stats = levelStats(cards);
+  const mine = currentLevel(cards).tier;
   return (
     <div className="screen library">
-      <div className="eyebrow">Colecciones · {open} de {PACKS.length} abiertas</div>
+      <div className="eyebrow">Colecciones · {PACKS.length} · 5 niveles</div>
       <h1 className="display">Pick your drama.</h1>
-      <p className="muted lead">Cada colección es una temporada corta: cinco expresiones de B1 a C1, jugadas en todos los modos.</p>
-      <div className="poster-grid">
-        {PACKS.map((p, i) => {
-          const locked = p.unlock > level;
-          return (
-            <motion.button key={p.id} className="poster-btn" onClick={() => openPackSheet(p.id)} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 8) * 0.03 }}>
-              <Poster pack={p} locked={locked} mastery={packMastery(cards, p.id)} />
-            </motion.button>
-          );
-        })}
-      </div>
+      <p className="muted lead">Cinco niveles, de FIRST STEPS (A1) a THINK IN ENGLISH (C1). Empieza por el tuyo; puedes abrir cualquier otro cuando quieras.</p>
+      {LEVELS.map((l) => {
+        const st = stats.find((x) => x.tier === l.tier)!;
+        const packs = PACKS.filter((p) => p.tier === l.tier);
+        return (
+          <section key={l.tier} className={`lib-level ${l.tier === mine ? 'mine' : ''}`}>
+            <header className="lib-level-head">
+              <span className="lib-level-n">{l.tier}</span>
+              <div>
+                <h2>
+                  {l.name} <LevelTag tier={l.tier} />
+                </h2>
+                <p>{l.blurb}</p>
+              </div>
+              {l.tier === mine && <span className="lib-mine">Tu nivel</span>}
+            </header>
+            <div className="lib-level-bar" aria-label={`${st.seen} de ${st.total} frases vistas`}>
+              <i style={{ width: `${(st.seen / Math.max(1, st.total)) * 100}%` }} />
+              <small>
+                {st.seen}/{st.total} frases
+              </small>
+            </div>
+            <div className="poster-grid">
+              {packs.map((p, i) => (
+                <motion.button key={p.id} className="poster-btn" onClick={() => openPackSheet(p.id)} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 8) * 0.03 }}>
+                  <Poster pack={p} locked={false} mastery={packMastery(cards, p.id)} />
+                </motion.button>
+              ))}
+            </div>
+          </section>
+        );
+      })}
     </div>
   );
 }
@@ -43,7 +67,7 @@ export function PackSheet() {
     <Sheet open={!!p} onClose={() => s.openPackSheet(null)} className="pack-sheet">
       {p && (
         <>
-          <Poster pack={p} locked={p.unlock > level} />
+          <Poster pack={p} locked={false} />
           <p className="pack-blurb">{p.blurb}</p>
           <div className="pack-stats">
             <Ring value={packMastery(s.cards, p.id)} size={52} tone="olive">
@@ -58,11 +82,12 @@ export function PackSheet() {
               <small>mejor precisión</small>
             </div>
           </div>
-          {p.unlock > level ? (
-            <p className="locked-note">
-              <Icon name="lock" size={14} /> Se abre en el nivel {p.unlock}. Te faltan {p.unlock - level}. Mientras, alguna de sus frases puede salir como sorpresa en una lección.
+          {(p.tier ?? 1) > currentLevel(s.cards).tier && (
+            <p className="level-note">
+              <LevelTag tier={p.tier ?? 1} full /> Más avanzado que tu nivel actual. Puedes jugarlo igualmente{p.unlock > level ? `; se recomienda a partir del nivel ${p.unlock} de experiencia` : ''}.
             </p>
-          ) : (
+          )}
+          {(
             <>
               {!gate.canLearnNew && packHasNew(p.id, s.cards) && (
                 <p className="locked-note">
@@ -101,7 +126,7 @@ export function PackSheet() {
                     <span className="xlist-en">{c ? plain(x.en) : '· · · · · · ·'}</span>
                     <span className="xlist-es">{c ? x.es : 'Sin descubrir. Juega para revelarla.'}</span>
                     <span className="xlist-meta">
-                      <span className={`lvl lvl-${x.level}`}>{x.level}</span>
+                      <LevelTag item={x} />
                       {c && <Dots value={c.box} />}
                     </span>
                   </button>
@@ -146,7 +171,7 @@ export function Games() {
           <span className="eyebrow">Nuevo · escenas</span>
           <b>The Unexpected Twist</b>
           <small>Escenas cortas, un diálogo y una última frase que no significa lo que dice.</small>
-          <span className="feature-stat">{s.byMode.twist?.a ? `${Math.round((s.byMode.twist.c / s.byMode.twist.a) * 100)}% aciertos` : '30 escenas originales'}</span>
+          <span className="feature-stat">{s.byMode.twist?.a ? `${Math.round((s.byMode.twist.c / s.byMode.twist.a) * 100)}% aciertos` : '36 escenas originales'}</span>
         </button>
         <div className="twist-cols">
           {TWIST_COLLECTIONS.map((c) => (

@@ -1,5 +1,4 @@
 import { motion } from 'framer-motion';
-import { Highlight } from '../components/ExpressionCard';
 import { Logo } from '../components/Logo';
 import { InstallCard } from '../components/Pwa';
 import { ExtraChancePanel, TokenPill } from '../components/Tokens';
@@ -10,7 +9,11 @@ import { titleFor } from '../data/meta';
 import { greeting } from '../data/voice';
 import { dayKey } from '../engine/date';
 import { levelFromXp } from '../engine/progression';
-import { phraseOfTheDay, weeklyPack } from '../engine/session';
+import { weeklyPack } from '../engine/session';
+import { dailyLine } from '../data/dailyline';
+import { currentLevel } from '../engine/levelProgress';
+import { LEVEL_BY_TIER } from '../data/levels';
+import { Speak } from '../components/Speak';
 import { dueIds } from '../engine/srs';
 import { kindOf } from '../data/extra';
 import { GOAL_PACKS, packMastery, useGame, useGate } from '../store/game';
@@ -31,7 +34,9 @@ export function Today() {
   }
   const today = dayKey();
   const { level, into, need } = levelFromXp(s.xp);
-  const potd = phraseOfTheDay(today);
+  const line = dailyLine(today);
+  const eng = currentLevel(s.cards);
+  const engLevel = LEVEL_BY_TIER[eng.tier];
   const weekly = weeklyPack(today, level);
   const due = dueIds(s.cards, Date.now()).length;
   const open = PACKS.filter((p) => p.unlock <= level);
@@ -73,6 +78,20 @@ export function Today() {
         <Bar value={into} max={need} tone="cream" />
         <small>{need - into} XP para {titleFor(level + 1)}</small>
       </div>
+
+      <button className="eng-level" onClick={() => s.go('library')}>
+        <span className="eng-level-top">
+          <span className="eyebrow">Tu nivel de inglés · {eng.tier}/5</span>
+          <span className="eng-level-range">{engLevel.range}</span>
+        </span>
+        <b>{engLevel.name}</b>
+        <span className="eng-level-bar" aria-hidden>
+          <i style={{ width: `${Math.min(100, (eng.seen / Math.max(1, eng.total)) * 100)}%` }} />
+        </span>
+        <small>
+          {eng.seen} de {eng.total} frases vistas · {engLevel.es}
+        </small>
+      </button>
 
       <motion.section className={`daily ${gate.state !== 'open' ? 'review' : ''}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
         {gate.state === 'open' && (
@@ -130,24 +149,28 @@ export function Today() {
         )}
       </motion.section>
 
-      <section className="potd">
-        <div className="eyebrow">Frase del día · {potd.level}</div>
-        <p className="potd-en">
-          <Highlight en={potd.en} />
-        </p>
-        <p className="potd-es">{potd.gist}</p>
+      <section className="potd daily-line">
+        <div className="eyebrow">The Daily Line · {LEVEL_BY_TIER[line.tier].range}</div>
+        <p className="potd-en">{line.en}</p>
+        <p className="potd-es">{line.es}</p>
+        {line.note && <p className="dl-note">{line.note}</p>}
         <div className="potd-actions">
-          <button className="link" onClick={() => s.openExpression(potd.id)}>
-            Ver ficha <Icon name="arrow" size={14} />
-          </button>
-          {s.cards[potd.id] ? (
-            <span className="saved">
-              <Icon name="check" size={14} /> En tu colección
-            </span>
-          ) : (
-            <button className="link" onClick={() => s.savePhrase(potd.id)}>
-              <Icon name="bookmark" size={14} /> Guardar
-            </button>
+          <Speak clips={[{ text: line.en, tone: 'amused' }]} label={line.en} slowButton={false} size="sm" />
+          {line.x && (
+            <>
+              <button className="link" onClick={() => s.openExpression(line.x!)}>
+                Ver ficha <Icon name="arrow" size={14} />
+              </button>
+              {s.cards[line.x] ? (
+                <span className="saved">
+                  <Icon name="check" size={14} /> En tu colección
+                </span>
+              ) : (
+                <button className="link" onClick={() => s.savePhrase(line.x!)}>
+                  <Icon name="bookmark" size={14} /> Guardar
+                </button>
+              )}
+            </>
           )}
         </div>
       </section>

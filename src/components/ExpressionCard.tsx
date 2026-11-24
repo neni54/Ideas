@@ -1,3 +1,4 @@
+import { LevelTag } from './LevelTag';
 import { useMemo, useState } from 'react';
 import { play } from '../audio/voice';
 import { sfx } from '../audio/sfx';
@@ -53,7 +54,7 @@ export function ExpressionBody({ x, withChallenge = true }: { x: Expression; wit
   return (
     <div className="xcard">
       <div className="xcard-chips">
-        <span className={`lvl lvl-${x.level}`}>{x.level}</span>
+        <LevelTag item={x} />
         <span className="chip-tone">{INTENT_LABEL[x.intent]}</span>
         {x.tags.map((t) => (
           <span key={t} className="chip-tag">

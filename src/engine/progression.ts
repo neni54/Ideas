@@ -12,7 +12,8 @@ export function levelFromXp(xp: number) {
   return { level, into: rest, need: xpToNext(level) };
 }
 
-export const XP_BY_LEVEL: Record<Cefr, number> = { B1: 10, B2: 12, C1: 15 };
+/** XP per correct answer by CEFR tag (A1 easiest). Screens use XP_BY_TIER (data/levels) instead. */
+export const XP_BY_LEVEL: Record<Cefr, number> = { A1: 8, A2: 9, B1: 10, B2: 12, C1: 15 };
 export const XP_COMBO_BONUS = 3;
 export const XP_RETRY = 4;
 

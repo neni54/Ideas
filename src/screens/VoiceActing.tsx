@@ -1,3 +1,5 @@
+import { LevelTag } from '../components/LevelTag';
+import { XP_BY_TIER, tierOf } from '../data/levels';
 import { motion } from 'framer-motion';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { sfx } from '../audio/sfx';
@@ -7,7 +9,7 @@ import { say } from '../data/voice';
 import { roundId } from '../data/voiceacting';
 import { dayKey } from '../engine/date';
 import { gateWithChance } from '../engine/gate';
-import { XP_BY_LEVEL, XP_COMBO_BONUS } from '../engine/progression';
+import { XP_COMBO_BONUS } from '../engine/progression';
 import { buildVoice, type VoiceRound } from '../engine/session';
 import { useServices } from '../services/api';
 import { useGame } from '../store/game';
@@ -94,7 +96,7 @@ export function VoiceActing() {
     store.answerExtra(id, ok, { mode: 'voice', combo: next });
     if (ok) {
       a.firstTry++;
-      a.xp += XP_BY_LEVEL[r.line.level] + (next >= 3 ? XP_COMBO_BONUS : 0);
+      a.xp += XP_BY_TIER[tierOf(r.line)] + (next >= 3 ? XP_COMBO_BONUS : 0);
       next >= 3 && next % 3 === 0 ? sfx.streak() : sfx.correct();
       setLine(say(next >= 3 ? 'streak' : 'tone'));
     } else {
@@ -196,7 +198,7 @@ export function VoiceActing() {
           <div className="eyebrow">♪ Voice Acting · ronda {i + 1}</div>
           <span className="stage-flags">
             {r.isReview && <span className="flag">Repaso</span>}
-            <span className={`lvl lvl-${r.line.level}`}>{r.line.level}</span>
+            <LevelTag item={r.line} />
           </span>
         </div>
         <p className="voice-line">“{r.line.text}”</p>

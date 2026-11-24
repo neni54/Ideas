@@ -12,6 +12,9 @@ import { useEffect } from 'react';
 import { useGame } from '../store/game';
 import { STATUS_LABEL, statusOf } from '../engine/gate';
 import { weekDays } from './Today';
+import { LEVEL_BY_TIER, tierOf, tierRange } from '../data/levels';
+import { levelStats } from '../engine/levelProgress';
+import { LevelTag } from '../components/LevelTag';
 import { InstallCard } from '../components/Pwa';
 import { Backup } from '../components/Backup';
 
@@ -92,7 +95,7 @@ export function Phrases() {
                   <span className="xlist-meta">
                     <span className={`status status-${statusOf(c, now)}`}>{STATUS_LABEL[statusOf(c, now)]}</span>
                     <small>
-                      {x.level} · {PACK_BY_ID[x.pack].title}
+                      {tierRange(tierOf(x))} · {PACK_BY_ID[x.pack].title}
                     </small>
                     <Dots value={c.box} />
                   </span>
@@ -116,12 +119,7 @@ export function Profile() {
   const mastered = masteredCount(s.cards);
   const days = weekDays();
   const maxXp = Math.max(40, ...days.map((d) => s.activity[d] ?? 0));
-  const byLevel = (['B1', 'B2', 'C1'] as const).map((l) => {
-    const all = ALL_LIST.filter((x) => x.level === l);
-    const seen = all.filter((x) => s.cards[x.id]).length;
-    const done = all.filter((x) => (s.cards[x.id]?.box ?? 0) >= 3).length;
-    return { l, total: all.length, seen, done };
-  });
+  const byLevel = levelStats(s.cards).map((st) => ({ t: st.tier, total: st.total, seen: st.seen, done: st.mastered }));
 
   return (
     <div className="screen profile">
@@ -186,19 +184,22 @@ export function Profile() {
       </section>
 
       <section className="block">
-        <h3 className="block-title">Por nivel CEFR</h3>
+        <h3 className="block-title">Por nivel de inglés</h3>
         <ul className="bars">
           {byLevel.map((b) => (
-            <li key={b.l}>
-              <span className={`lvl lvl-${b.l}`}>{b.l}</span>
-              <Bar value={b.done} max={b.total} tone="olive" />
+            <li key={b.t} title={`${LEVEL_BY_TIER[b.t].name}: ${b.seen} vistas, ${b.done} asentadas`}>
+              <span className="bars-level">
+                <LevelTag tier={b.t} />
+                <small>{LEVEL_BY_TIER[b.t].name}</small>
+              </span>
+              <Bar value={b.seen} max={b.total} tone="olive" />
               <small className="mono">
-                {b.done}/{b.total}
+                {b.seen}/{b.total}
               </small>
             </li>
           ))}
         </ul>
-        <p className="note">Una expresión cuenta como asentada a partir de 3 de 5 en dominio.</p>
+        <p className="note">Frases vistas de cada nivel. Cuando has visto el 80 % de un nivel, te recomendamos el siguiente (puedes abrir cualquiera cuando quieras).</p>
       </section>
 
       <section className="block">

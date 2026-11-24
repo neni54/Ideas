@@ -1,3 +1,4 @@
+import { LevelTag } from '../components/LevelTag';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { sfx } from '../audio/sfx';
@@ -216,7 +217,7 @@ export function Memory() {
             aria-label="Mostrar respuesta"
           >
             <div className="face-meta">
-              <span className={`lvl lvl-${x.level}`}>{x.level}</span>
+              <LevelTag item={x} />
               {card && <Dots value={card.box} />}
             </div>
             <p className="face-en">{x.kind === 'expression' ? <Highlight en={x.front} /> : `“${x.front}”`}</p>
@@ -229,7 +230,7 @@ export function Memory() {
           </div>
           <div className="face back">
             <div className="face-meta">
-              <span className={`lvl lvl-${x.level}`}>{x.level}</span>
+              <LevelTag item={x} />
               <Speak clips={[x.audio]} label={x.audio.text} />
             </div>
             <p className="face-es">{x.back}</p>

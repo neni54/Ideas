@@ -1,3 +1,5 @@
+import { LevelTag } from '../components/LevelTag';
+import { XP_BY_TIER, tierOf } from '../data/levels';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { sfx } from '../audio/sfx';
@@ -8,7 +10,7 @@ import { TWIST_COLLECTIONS, questionFor } from '../data/twists';
 import { say } from '../data/voice';
 import { dayKey } from '../engine/date';
 import { gateWithChance } from '../engine/gate';
-import { XP_BY_LEVEL, XP_COMBO_BONUS, difficulty } from '../engine/progression';
+import { XP_COMBO_BONUS, difficulty } from '../engine/progression';
 import { buildTwist } from '../engine/session';
 import { useGame } from '../store/game';
 
@@ -66,7 +68,7 @@ export function Twist() {
     store.answerExtra(r.scene.id, ok, { mode: 'twist', combo: next });
     if (ok) {
       a.firstTry++;
-      a.xp += XP_BY_LEVEL[r.scene.level] + (next >= 3 ? XP_COMBO_BONUS : 0);
+      a.xp += XP_BY_TIER[tierOf(r.scene)] + (next >= 3 ? XP_COMBO_BONUS : 0);
       next >= 3 && next % 3 === 0 ? sfx.streak() : sfx.correct();
       setLine(say(next >= 3 ? 'streak' : 'tone'));
     } else {
@@ -133,7 +135,7 @@ export function Twist() {
             <div className="eyebrow">↯ The Unexpected Twist · {col.title}</div>
             <span className="stage-flags">
               {r.isReview && <span className="flag">Repaso</span>}
-              <span className={`lvl lvl-${sc.level}`}>{sc.level}</span>
+              <LevelTag item={sc} />
             </span>
           </div>
 

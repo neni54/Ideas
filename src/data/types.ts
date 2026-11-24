@@ -1,4 +1,7 @@
-export type Cefr = 'B1' | 'B2' | 'C1';
+export type Cefr = 'A1' | 'A2' | 'B1' | 'B2' | 'C1';
+
+/** SIDEYE level: 1 FIRST STEPS … 5 THINK IN ENGLISH. */
+export type Tier = 1 | 2 | 3 | 4 | 5;
 
 export type Intent = 'sincere' | 'sarcastic' | 'passive-aggressive' | 'annoyed' | 'joking' | 'flirty' | 'evasive';
 
@@ -29,6 +32,8 @@ export interface Expression {
   /** Natural Spanish (Spain) translation. */
   es: string;
   level: Cefr;
+  /** SIDEYE level 1–5 (see data/levels.ts). Optional: derived from `level` when missing. */
+  tier?: Tier;
   tags: Tag[];
   /** When/where it is used. */
   context: string;
@@ -67,6 +72,8 @@ export interface Pack {
   unlock: number;
   colors: [string, string];
   expressions: Expression[];
+  /** SIDEYE level of the pack (set in data/content.ts from its expressions). */
+  tier?: Tier;
 }
 
 export type RawExpression = Omit<Expression, 'id' | 'pack'>;
