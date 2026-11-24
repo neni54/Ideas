@@ -9,9 +9,11 @@ import { levelFromXp } from '../engine/progression';
 import { masteredCount, newCard, onAnswer, onGrade, INTERVALS, type Card } from '../engine/srs';
 import type { Challenge } from '../engine/challenges';
 import { weeklyPack } from '../engine/session';
-import { LEARNING_RUNS, afterReview, afterSession, gateFor, nextLocalMidnight, settle, type ReviewLock } from '../engine/gate';
+import { LEARNING_RUNS, afterReview, afterSession, gateFor, gateWithChance, nextLocalMidnight, settle, type ExtraChance, type ReviewLock } from '../engine/gate';
+import { BADGE_PRICE, EXTRA_CHANCE_PRICE, isPerfect, lessonKey, type TokenMove } from '../engine/tokens';
+import { BADGE_BY_ID } from '../data/badges';
 
-export type Screen = 'today' | 'library' | 'games' | 'phrases' | 'translate' | 'profile' | 'play' | 'quickfire' | 'memory' | 'twist' | 'voice' | 'results';
+export type Screen = 'today' | 'library' | 'games' | 'phrases' | 'translate' | 'profile' | 'shop' | 'play' | 'quickfire' | 'memory' | 'twist' | 'voice' | 'results';
 export type RunMode = Challenge['mode'];
 export type RunKind = Run['kind'];
 
@@ -38,6 +40,10 @@ export interface RunSummary {
   gateAtStart?: import('../engine/gate').GateState;
   score?: number;
   ms: number;
+  /** Expressions played in the session (identifies the lesson for token rewards). */
+  ids?: string[];
+  /** The session started thanks to an EXTRA CHANCE bought with a token. */
+  usedExtraChance?: boolean;
 }
 
 export interface RunResult extends RunSummary {
@@ -54,6 +60,10 @@ export interface RunResult extends RunSummary {
   reviewCleared?: boolean;
   /** Mistakes counted for the rule in this session. */
   mistakeCount?: number;
+  /** SIDEYE TOKENS: +1 for this perfect lesson. */
+  tokenEarned?: boolean;
+  /** Perfect, but this lesson had already paid its token. */
+  tokenAlready?: boolean;
 }
 
 export interface Toast {
@@ -105,6 +115,16 @@ interface Persisted {
   dailyDone: string | null;
   reviewLock: ReviewLock | null;
   lessons: number;
+  /** SIDEYE TOKENS balance (never expires, never bought with money). */
+  tokens: number;
+  /** Token movements, newest first (kept short). */
+  tokenLog: TokenMove[];
+  /** Lessons that already paid their token: lessonKey → time. */
+  tokenAwards: Record<string, number>;
+  /** THE BADGE SHOP: badge id → time bought. Collectibles only. */
+  badges: Record<string, number>;
+  /** EXTRA CHANCE lessons bought for today. */
+  extraChance: ExtraChance | null;
   achievements: Record<string, number>;
   recent: boolean[];
   settings: Settings;
@@ -161,6 +181,10 @@ interface Actions {
   openTranslator: (text: string) => void;
   saveTranslation: (e: TranslationEntry) => void;
   reset: () => void;
+  /** Spends 1 token for one more lesson today. false if not locked today or not enough tokens. */
+  buyExtraChance: () => boolean;
+  /** Spends 10 tokens on a badge. Never twice, never with an insufficient balance. */
+  buyBadge: (id: string) => 'ok' | 'owned' | 'funds' | 'unknown';
 }
 
 export type GameState = Persisted & Volatile & Actions;
@@ -198,6 +222,11 @@ const initial = (): Persisted => ({
   dailyDone: null,
   reviewLock: null,
   lessons: 0,
+  tokens: 0,
+  tokenLog: [],
+  tokenAwards: {},
+  badges: {},
+  extraChance: null,
   achievements: {},
   recent: [],
   settings: { sound: true, voice: true, browserVoiceFallback: true },
@@ -208,7 +237,7 @@ const initial = (): Persisted => ({
 const volatile = (): Volatile => ({ screen: 'today', tab: 'today', run: null, runId: 0, result: null, toasts: [], openX: null, openPack: null, translatorDraft: null });
 
 let toastId = 1;
-const TABS: Screen[] = ['today', 'library', 'games', 'phrases', 'translate', 'profile'];
+const TABS: Screen[] = ['today', 'library', 'games', 'phrases', 'translate', 'shop', 'profile'];
 
 export const playerLevel = (xp: number) => levelFromXp(xp).level;
 export const packMastery = (cards: Record<string, Card>, packId: string) => {
@@ -261,6 +290,10 @@ export const useGame = create<GameState>()(
         return fresh.map((a) => a.id);
       };
 
+      let moveSeq = 0;
+      const move = (delta: number, reason: string): TokenMove => ({ id: `${Date.now().toString(36)}-${(moveSeq++).toString(36)}`, at: Date.now(), delta, reason });
+      const withMove = (log: TokenMove[], m: TokenMove) => [m, ...log].slice(0, 80);
+
       return {
         ...initial(),
         ...volatile(),
@@ -275,6 +308,15 @@ export const useGame = create<GameState>()(
           const patch: Partial<Persisted> = {};
           const settled = settle(s.reviewLock, today);
           if (settled !== s.reviewLock) patch.reviewLock = settled;
+          // Unused EXTRA CHANCES from an earlier day go back to the balance.
+          if (s.extraChance && s.extraChance.day !== today) {
+            const left = Math.max(0, s.extraChance.left);
+            patch.extraChance = null;
+            if (left) {
+              patch.tokens = s.tokens + left * EXTRA_CHANCE_PRICE;
+              patch.tokenLog = withMove(s.tokenLog, move(left * EXTRA_CHANCE_PRICE, left === 1 ? 'Devolución: extra chance sin usar' : `Devolución: ${left} extra chances sin usar`));
+            }
+          }
           if (s.missions.day !== today) patch.missions = { day: today, list: dailyMissions(today), bonusClaimed: false };
           if (s.hintsDay !== today) {
             patch.hints = Math.max(s.hints, 3);
@@ -425,6 +467,29 @@ export const useGame = create<GameState>()(
           }
           const reviewCleared = sum.gateAtStart === 'review-first' && gateFor(reviewLock, today).canLearnNew;
 
+          // SIDEYE TOKENS: +1 for a perfect lesson, once per lesson (same evaluation as above).
+          let tokens = s.tokens;
+          let tokenLog = s.tokenLog;
+          let tokenAwards = s.tokenAwards;
+          let tokenEarned = false;
+          let tokenAlready = false;
+          const key = lessonKey(sum.run, sum.ids);
+          if (key && isPerfect(sum)) {
+            if (tokenAwards[key]) tokenAlready = true;
+            else {
+              tokenEarned = true;
+              tokens += 1;
+              tokenAwards = { ...tokenAwards, [key]: Date.now() };
+              const what = sum.run.kind === 'episode' ? `episodio perfecto · ${PACKS.find((p) => p.id === (sum.run as { packId: string }).packId)?.title ?? ''}` : `lección perfecta · Lección ${s.lessons + 1}`;
+              tokenLog = withMove(tokenLog, move(1, what[0].toUpperCase() + what.slice(1)));
+            }
+          }
+          // A finished session that started with an EXTRA CHANCE uses it up.
+          let extraChance = s.extraChance;
+          if (sum.usedExtraChance && extraChance && extraChance.day === today && extraChance.left > 0) {
+            extraChance = extraChance.left > 1 ? { ...extraChance, left: extraChance.left - 1 } : null;
+          }
+
           const h = new Date().getHours();
           const byMode = { ...s.byMode };
           if (sum.run.kind === 'quickfire') {
@@ -445,6 +510,10 @@ export const useGame = create<GameState>()(
             cards,
             extra,
             lessons: s.lessons + (sum.run.kind === 'daily' ? 1 : 0),
+            tokens,
+            tokenLog,
+            tokenAwards,
+            extraChance,
             activity: Object.fromEntries(Object.entries({ ...s.activity, [today]: (s.activity[today] ?? 0) + totalXp }).slice(-60)),
             stats: {
               ...s.stats,
@@ -462,7 +531,7 @@ export const useGame = create<GameState>()(
           const newAchievements = checkAchievements();
           set({
             screen: 'results',
-            result: { ...sum, accuracy, totalXp, bonuses, levelUp: to > from ? { from, to } : undefined, streakUp, newAchievements, newBest, lockTriggered, reviewCleared, mistakeCount: isLearning ? mistakes.length : undefined },
+            result: { ...sum, accuracy, totalXp, bonuses, levelUp: to > from ? { from, to } : undefined, streakUp, newAchievements, newBest, lockTriggered, reviewCleared, mistakeCount: isLearning ? mistakes.length : undefined, tokenEarned, tokenAlready },
           });
         },
 
@@ -522,6 +591,36 @@ export const useGame = create<GameState>()(
         openTranslator: (text) => set({ translatorDraft: text, screen: 'translate', tab: 'translate', openX: null }),
         saveTranslation: (e) => set({ translations: [e, ...get().translations.filter((t) => t.text !== e.text || t.direction !== e.direction)].slice(0, 12) }),
         reset: () => set({ ...initial(), ...volatile(), name: '', xp: 0, streak: 0, bestStreak: 0, lastPlayDay: null }),
+
+        buyExtraChance: () => {
+          const s = get();
+          const today = dayKey();
+          // Only when the 3-mistake lock is active today, and only with enough balance.
+          if (gateFor(s.reviewLock, today).state !== 'locked-today' || s.tokens < EXTRA_CHANCE_PRICE) return false;
+          // One chance at a time: a second tap (or double tap) cannot spend another token
+          // until the bought lesson has been played.
+          if (s.extraChance && s.extraChance.day === today && s.extraChance.left > 0) return false;
+          set({
+            tokens: s.tokens - EXTRA_CHANCE_PRICE,
+            extraChance: { day: today, left: 1 },
+            tokenLog: withMove(s.tokenLog, move(-EXTRA_CHANCE_PRICE, 'Extra chance: una lección más hoy')),
+          });
+          return true;
+        },
+
+        buyBadge: (id) => {
+          const s = get();
+          const badge = BADGE_BY_ID[id];
+          if (!badge) return 'unknown';
+          if (s.badges[id]) return 'owned';
+          if (s.tokens < BADGE_PRICE) return 'funds';
+          set({
+            tokens: s.tokens - BADGE_PRICE,
+            badges: { ...s.badges, [id]: Date.now() },
+            tokenLog: withMove(s.tokenLog, move(-BADGE_PRICE, `Escudo: ${badge.name}`)),
+          });
+          return 'ok';
+        },
       } as GameState;
     },
     {
@@ -547,5 +646,6 @@ export const useGame = create<GameState>()(
 /** Current progression gate for the user's local calendar day. */
 export const useGate = () => {
   const lock = useGame((s) => s.reviewLock);
-  return gateFor(lock, dayKey());
+  const chance = useGame((s) => s.extraChance);
+  return gateWithChance(lock, dayKey(), chance);
 };

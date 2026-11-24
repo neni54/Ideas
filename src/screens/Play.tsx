@@ -15,11 +15,11 @@ import { buildDaily, buildEpisode, buildPractice } from '../engine/session';
 import { ModeView } from '../modes/Modes';
 import { playerLevel, useGame, type Run } from '../store/game';
 import { dayKey } from '../engine/date';
-import { gateFor } from '../engine/gate';
+import { gateWithChance } from '../engine/gate';
 
 function buildQueue(run: Run, s: ReturnType<typeof useGame.getState>, diff: 0 | 1 | 2): Challenge[] {
   const level = playerLevel(s.xp);
-  const gate = gateFor(s.reviewLock, dayKey());
+  const gate = gateWithChance(s.reviewLock, dayKey(), s.extraChance);
   const opts = { allowNew: gate.canLearnNew, priority: gate.state === 'review-first' ? gate.pending : [] };
   if (run.kind === 'episode') return buildEpisode(run.packId, s.cards, diff, Date.now(), opts);
   if (run.kind === 'daily') return buildDaily(s.cards, level, diff, Date.now(), opts);
@@ -56,7 +56,7 @@ export function Play() {
   const [missCount, setMissCount] = useState(0);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [quitting, setQuitting] = useState(false);
-  const acc = useRef({ total: 0, firstTry: 0, maxCombo: 0, xp: 0, newIds: [] as string[], missed: [] as string[], retried: new Set<string>(), mistakes: new Set<string>(), gateAtStart: gateFor(useGame.getState().reviewLock, dayKey()).state, t0: Date.now() });
+  const acc = useRef({ total: 0, firstTry: 0, maxCombo: 0, xp: 0, newIds: [] as string[], missed: [] as string[], retried: new Set<string>(), mistakes: new Set<string>(), gateAtStart: gateWithChance(useGame.getState().reviewLock, dayKey(), useGame.getState().extraChance).state, extraAtStart: !!gateWithChance(useGame.getState().reviewLock, dayKey(), useGame.getState().extraChance).extra, t0: Date.now() });
   const c = queue[idx];
 
   // Test hook for automated play-throughs (only with ?e2e in the URL).
@@ -72,8 +72,8 @@ export function Play() {
 
   const finish = useCallback(() => {
     const a = acc.current;
-    store.finishRun({ run, total: a.total, firstTry: a.firstTry, maxCombo: a.maxCombo, xp: a.xp, newIds: a.newIds, missedIds: [...new Set(a.missed)], mistakes: [...a.mistakes], gateAtStart: a.gateAtStart, ms: Date.now() - a.t0 });
-  }, [store, run]);
+    store.finishRun({ run, total: a.total, firstTry: a.firstTry, maxCombo: a.maxCombo, xp: a.xp, newIds: a.newIds, missedIds: [...new Set(a.missed)], mistakes: [...a.mistakes], gateAtStart: a.gateAtStart, ms: Date.now() - a.t0, ids: [...new Set(queue.map((q) => q.x.id))], usedExtraChance: a.extraAtStart });
+  }, [store, run, queue]);
 
   const pick = useCallback(
     (o: Option) => {
@@ -132,7 +132,7 @@ export function Play() {
       <div className="screen center-screen">
         <p className="serif-lg">Nothing to play here yet.</p>
         <p className="muted">
-          {gateFor(store.reviewLock, dayKey()).canLearnNew
+          {gateWithChance(store.reviewLock, dayKey(), store.extraChance).canLearnNew
             ? 'Desbloquea más colecciones subiendo de nivel.'
             : 'Hoy solo se repasa lo que ya has visto, y aquí todavía no hay nada visto. Prueba la siguiente lección o Memory.'}
         </p>

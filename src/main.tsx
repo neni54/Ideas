@@ -12,3 +12,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 );
 
 registerServiceWorker();
+
+// Test hook for automated tests (only with ?e2e in the URL, like the one in Play.tsx).
+if (typeof window !== 'undefined' && window.location.search.includes('e2e')) {
+  import('./store/game').then(({ useGame }) => ((window as unknown as { __store: typeof useGame }).__store = useGame));
+}

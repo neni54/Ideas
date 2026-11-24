@@ -26,6 +26,16 @@ export interface Gate {
   /** May the user start sessions that introduce expressions they have never seen? */
   canLearnNew: boolean;
   pending: string[];
+  /** True when new content is open only because of an EXTRA CHANCE bought with a token. */
+  extra?: boolean;
+}
+
+/** EXTRA CHANCE (SIDEYE TOKENS): lessons bought today to continue after the 3-mistake lock. */
+export interface ExtraChance {
+  /** Local day the chances were bought for. They only apply on that day. */
+  day: string;
+  /** Extra lessons still available today. */
+  left: number;
 }
 
 /**
@@ -38,6 +48,17 @@ export function gateFor(lock: ReviewLock | null, today: string): Gate {
   if (today <= lock.day) return { state: 'locked-today', canLearnNew: false, pending: lock.pending };
   if (lock.pending.length) return { state: 'review-first', canLearnNew: false, pending: lock.pending };
   return { state: 'open', canLearnNew: true, pending: [] };
+}
+
+/**
+ * The same gate, plus EXTRA CHANCE: on the day of a 3-mistake lock, a bought chance opens new
+ * content for one more lesson. It never touches the lock itself (mistakes, pending reviews,
+ * tomorrow's review), only whether this next lesson may include new expressions.
+ */
+export function gateWithChance(lock: ReviewLock | null, today: string, chance: ExtraChance | null | undefined): Gate {
+  const g = gateFor(lock, today);
+  if (g.state === 'locked-today' && chance && chance.day === today && chance.left > 0) return { ...g, canLearnNew: true, extra: true };
+  return g;
 }
 
 /** Applies the result of a learning session. Mistakes are distinct expressions missed on a first try. */

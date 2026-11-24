@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { Highlight } from '../components/ExpressionCard';
 import { Logo } from '../components/Logo';
 import { InstallCard } from '../components/Pwa';
+import { ExtraChancePanel, TokenPill } from '../components/Tokens';
 import { Poster } from '../components/Poster';
 import { Bar, Btn, Icon } from '../components/ui';
 import { PACKS, plain } from '../data/content';
@@ -48,10 +49,13 @@ export function Today() {
     <div className="screen today">
       <div className="brandbar">
         <Logo size={24} />
-        <button className={`streak-pill ${s.lastPlayDay === today ? 'lit' : ''}`} onClick={() => s.go('profile')} aria-label={`Racha de ${s.streak} días`}>
-          <Icon name="flame" size={16} />
-          <b>{s.streak}</b>
-        </button>
+        <span className="brandbar-pills">
+          <TokenPill />
+          <button className={`streak-pill ${s.lastPlayDay === today ? 'lit' : ''}`} onClick={() => s.go('profile')} aria-label={`Racha de ${s.streak} días`}>
+            <Icon name="flame" size={16} />
+            <b>{s.streak}</b>
+          </button>
+        </span>
       </div>
       <header className="today-head">
         <div>
@@ -92,9 +96,12 @@ export function Today() {
             <p className="daily-sub">
               Mañana (desde las 00:00) empezamos por {gate.pending.length === 1 ? 'lo que' : `las ${gate.pending.length} cosas que`} se te resistieron. Hoy puedes seguir repasando todo lo que ya conoces.
             </p>
-            <Btn wide variant="secondary" onClick={() => s.start({ kind: 'daily' })} disabled={!Object.keys(s.cards).length}>
-              Repasar lo aprendido <Icon name="arrow" size={16} />
-            </Btn>
+            <ExtraChancePanel compact />
+            {!gate.extra && (
+              <Btn wide variant="secondary" onClick={() => s.start({ kind: 'daily' })} disabled={!Object.keys(s.cards).length}>
+                Repasar lo aprendido <Icon name="arrow" size={16} />
+              </Btn>
+            )}
           </>
         )}
         {gate.state === 'review-first' && (

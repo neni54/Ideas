@@ -6,7 +6,7 @@ import { Bar, Btn, Icon } from '../components/ui';
 import { say } from '../data/voice';
 import { roundId } from '../data/voiceacting';
 import { dayKey } from '../engine/date';
-import { gateFor } from '../engine/gate';
+import { gateWithChance } from '../engine/gate';
 import { XP_BY_LEVEL, XP_COMBO_BONUS } from '../engine/progression';
 import { buildVoice, type VoiceRound } from '../engine/session';
 import { useServices } from '../services/api';
@@ -38,7 +38,7 @@ function Stage({ clip, label }: { clip: Clip; label: string }) {
 export function VoiceActing() {
   const store = useGame();
   const services = useServices();
-  const startGate = useMemo(() => gateFor(useGame.getState().reviewLock, dayKey()), []);
+  const startGate = useMemo(() => gateWithChance(useGame.getState().reviewLock, dayKey(), useGame.getState().extraChance), []);
   const rounds = useMemo(() => {
     const st = useGame.getState();
     return buildVoice(st.extra, { allowNew: startGate.canLearnNew, priority: startGate.state === 'review-first' ? startGate.pending : [] });
@@ -79,7 +79,7 @@ export function VoiceActing() {
 
   const finish = useCallback(() => {
     const a = acc.current;
-    store.finishRun({ run: { kind: 'voice' }, total: a.total, firstTry: a.firstTry, maxCombo: a.maxCombo, xp: a.xp, newIds: [], missedIds: a.missed, mistakes: [...a.mistakes], gateAtStart: startGate.state, ms: Date.now() - a.t0 });
+    store.finishRun({ run: { kind: 'voice' }, total: a.total, firstTry: a.firstTry, maxCombo: a.maxCombo, xp: a.xp, newIds: [], missedIds: a.missed, mistakes: [...a.mistakes], gateAtStart: startGate.state, usedExtraChance: !!startGate.extra, ms: Date.now() - a.t0 });
   }, [store, startGate]);
 
   const choose = (intent: string) => {

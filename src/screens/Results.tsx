@@ -1,3 +1,4 @@
+import { ExtraChancePanel, TokenResult } from '../components/Tokens';
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { sfx } from '../audio/sfx';
@@ -65,6 +66,8 @@ export function Results() {
           </ul>
         </motion.section>
       )}
+      {result.lockTriggered && <ExtraChancePanel />}
+      <TokenResult earned={result.tokenEarned} already={result.tokenAlready} />
       {result.reviewCleared && (
         <div className="clear-note">
           <Icon name="check" size={16} /> <b>Review done. Back to new stuff.</b> El repaso de ayer está superado: el contenido nuevo vuelve a estar disponible.

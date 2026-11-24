@@ -21,6 +21,8 @@ const PATHS: Record<string, ReactNode> = {
   bolt: <path d="M13 2L5 13.5h6L10 22l9-12h-6z" />,
   search: <><circle cx="11" cy="11" r="6.5" /><path d="M16 16l4.5 4.5" /></>,
   bookmark: <path d="M6 3.5h12v17l-6-4-6 4z" />,
+  token: <><circle cx="12" cy="12" r="8.5" /><circle cx="12" cy="12" r="5.5" strokeDasharray="1.6 1.6" /><path d="M12 9.2v5.6M10.2 10.6c.4-.9 1.2-1.3 2-1.3 1.1 0 1.8.6 1.8 1.4 0 1.9-3.8 1-3.8 3 0 .8.8 1.4 2 1.4.9 0 1.6-.4 2-1.2" strokeWidth="1.3" /></>,
+  shop: <><path d="M12 2.8l7.5 2.8v5.6c0 4.6-3.2 8.3-7.5 9.9-4.3-1.6-7.5-5.3-7.5-9.9V5.6z" /><path d="M8.2 12.2h7.6M9.5 9.4l2.5-2 2.5 2" /><path d="M9 15h6" /></>,
   shield: <path d="M12 3l7.5 3v5.5c0 4.5-3.2 8.2-7.5 9.5-4.3-1.3-7.5-5-7.5-9.5V6z" />,
   half: <><circle cx="12" cy="12" r="8.5" /><path d="M12 3.5v17A8.5 8.5 0 0012 3.5z" fill="currentColor" /></>,
   clock: <><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></>,
@@ -193,6 +195,7 @@ const NAV: { id: Screen; label: string }[] = [
   { id: 'games', label: 'Juegos' },
   { id: 'phrases', label: 'Frases' },
   { id: 'translate', label: 'Traductor' },
+  { id: 'shop', label: 'Shop' },
   { id: 'profile', label: 'Perfil' },
 ];
 

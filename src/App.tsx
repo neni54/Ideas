@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import { ExpressionSheet } from './components/ExpressionCard';
 import { AudioBar } from './components/Speak';
 import { UpdateBanner } from './components/Pwa';
+import { Shop } from './screens/Shop';
+import { TokensSheet } from './components/Tokens';
 import { Logo } from './components/Logo';
 import { Translate } from './screens/Translate';
 import { Twist } from './screens/Twist';
@@ -91,6 +93,7 @@ export default function App() {
     phrases: <Phrases />,
     translate: <Translate />,
     profile: <Profile />,
+    shop: <Shop />,
     play: <Play key={runId} />,
     quickfire: <QuickFire key={runId} />,
     memory: <Memory key={runId} />,
@@ -110,6 +113,7 @@ export default function App() {
       <AudioBar />
       <ExpressionSheet />
       <PackSheet />
+      <TokensSheet />
       <Toasts />
       <UpdateBanner />
     </div>

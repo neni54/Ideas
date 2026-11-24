@@ -7,7 +7,7 @@ import { Bar, Btn, Icon } from '../components/ui';
 import { TWIST_COLLECTIONS, questionFor } from '../data/twists';
 import { say } from '../data/voice';
 import { dayKey } from '../engine/date';
-import { gateFor } from '../engine/gate';
+import { gateWithChance } from '../engine/gate';
 import { XP_BY_LEVEL, XP_COMBO_BONUS, difficulty } from '../engine/progression';
 import { buildTwist } from '../engine/session';
 import { useGame } from '../store/game';
@@ -17,7 +17,7 @@ const LETTERS = 'ABCD';
 export function Twist() {
   const store = useGame();
   const run = store.run as { kind: 'twist'; collection?: (typeof TWIST_COLLECTIONS)[number]['id'] };
-  const startGate = useMemo(() => gateFor(useGame.getState().reviewLock, dayKey()), []);
+  const startGate = useMemo(() => gateWithChance(useGame.getState().reviewLock, dayKey(), useGame.getState().extraChance), []);
   const rounds = useMemo(() => {
     const st = useGame.getState();
     return buildTwist(st.extra, difficulty(st.recent), {
@@ -51,7 +51,7 @@ export function Twist() {
   const finish = useCallback(() => {
     const a = acc.current;
     store.finishRun({
-      run, total: a.total, firstTry: a.firstTry, maxCombo: a.maxCombo, xp: a.xp, newIds: [], missedIds: a.missed, mistakes: [...a.mistakes], gateAtStart: startGate.state, ms: Date.now() - a.t0,
+      run, total: a.total, firstTry: a.firstTry, maxCombo: a.maxCombo, xp: a.xp, newIds: [], missedIds: a.missed, mistakes: [...a.mistakes], gateAtStart: startGate.state, usedExtraChance: !!startGate.extra, ms: Date.now() - a.t0,
     });
   }, [store, run, startGate]);
 

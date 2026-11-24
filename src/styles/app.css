@@ -3939,3 +3939,429 @@ body {
   vertical-align: -3px;
   color: var(--cream);
 }
+
+/* ═════════════════════════════════════════════════════════════════════════════
+   SIDEYE TOKENS · THE BADGE SHOP
+   ═════════════════════════════════════════════════════════════════════════════ */
+/* 7 sections in the bottom nav: columns size to their label; icons only on very narrow phones. */
+.nav-item {
+  flex: 1 1 auto;
+}
+@media (max-width: 400px) {
+  .nav-item span {
+    font-size: 10px;
+  }
+}
+@media (max-width: 359px) {
+  .nav-item span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+}
+
+.brandbar-pills {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+}
+.token-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 99px;
+  border: 1px solid rgba(201, 166, 107, 0.45);
+  background: rgba(201, 166, 107, 0.08);
+  color: var(--gold);
+  font-family: var(--mono);
+}
+.token-pill b {
+  font-weight: 500;
+  font-size: 15px;
+  color: var(--cream);
+  font-variant-numeric: tabular-nums;
+}
+
+/* MY TOKENS */
+.tk-balance {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 6px 0 2px;
+}
+.tk-balance b {
+  font-family: 'Anton', 'Impact', sans-serif;
+  font-weight: 400;
+  font-size: 56px;
+  line-height: 1;
+  color: var(--cream);
+  font-variant-numeric: tabular-nums;
+}
+.tk-balance > span:last-child {
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  color: var(--gold);
+}
+.tk-coin {
+  width: 52px;
+  height: 52px;
+  flex: none;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #1a1815;
+  background: radial-gradient(circle at 35% 30%, #e6cf9c, #b89660 55%, #7a6240);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.18), 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+.tk-rules {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--text);
+}
+.tk-rules b {
+  display: inline-block;
+  min-width: 34px;
+  font-family: var(--mono);
+  color: var(--gold);
+}
+.tk-fine {
+  font-size: 12.5px;
+  color: var(--muted);
+  margin: 8px 0 14px;
+}
+.tk-empty {
+  font-size: 14px;
+  color: var(--muted);
+  margin-bottom: 14px;
+}
+.tk-log {
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  max-height: 34vh;
+  overflow-y: auto;
+  border-top: 1px solid var(--line);
+}
+.tk-log li {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+.tk-delta {
+  flex: none;
+  min-width: 42px;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 14px;
+  padding: 4px 6px;
+  border-radius: 8px;
+}
+.tk-delta.plus {
+  background: var(--olive-soft);
+  color: var(--olive-2);
+}
+.tk-delta.minus {
+  background: var(--wine-soft);
+  color: var(--wine-2);
+}
+.tk-reason {
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+  color: var(--text);
+  min-width: 0;
+}
+.tk-reason small {
+  font-size: 11.5px;
+  color: var(--dim);
+}
+.tk-earned {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(201, 166, 107, 0.5);
+  background: linear-gradient(150deg, rgba(201, 166, 107, 0.16), rgba(201, 166, 107, 0.04));
+  text-align: left;
+}
+.tk-earned b {
+  display: block;
+  font-family: 'Anton', 'Impact', sans-serif;
+  font-weight: 400;
+  font-size: 22px;
+  letter-spacing: 0.04em;
+  color: var(--cream);
+}
+.tk-earned small {
+  font-size: 13px;
+  color: var(--muted);
+}
+.tk-already {
+  font-size: 13.5px;
+  color: var(--muted);
+}
+
+/* EXTRA CHANCE */
+.xc {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(201, 166, 107, 0.4);
+  background: linear-gradient(160deg, rgba(201, 166, 107, 0.1), var(--surface) 70%);
+}
+.xc-compact {
+  margin-top: 4px;
+}
+.xc-on {
+  border-color: rgba(181, 183, 124, 0.5);
+  background: linear-gradient(160deg, var(--olive-soft), var(--surface) 70%);
+}
+.xc-title {
+  font-family: var(--serif);
+  font-size: 26px;
+  line-height: 1.1;
+  color: var(--cream);
+}
+.xc-sub {
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.5;
+}
+.xc-sub b {
+  color: var(--gold);
+}
+.xc-buy {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 56px;
+  border-radius: 14px;
+  background: linear-gradient(150deg, #dcc390, #b89660);
+  color: #1a1815;
+  font-family: 'Anton', 'Impact', sans-serif;
+  font-size: 18px;
+  letter-spacing: 0.06em;
+}
+.xc-buy:disabled {
+  opacity: 0.4;
+}
+.xc-wait {
+  min-height: 50px;
+  border-radius: 14px;
+  border: 1px solid var(--line-2);
+  font-family: 'Anton', 'Impact', sans-serif;
+  font-size: 16px;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+.xc-none {
+  font-size: 13.5px;
+  color: var(--gold);
+}
+
+/* THE BADGE SHOP */
+.shop-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.shop-title {
+  font-family: 'Anton', 'Impact', sans-serif;
+  font-weight: 400;
+  font-size: clamp(38px, 12vw, 54px);
+  line-height: 0.95;
+  letter-spacing: 0.01em;
+  color: var(--cream);
+}
+.shop-title em {
+  font-style: normal;
+  color: var(--wine-2);
+}
+.sp-seg {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.sp-seg button {
+  min-height: 46px;
+  padding: 0 8px;
+  border-radius: 12px;
+  border: 1px solid var(--line-2);
+  font-weight: 600;
+  font-size: 14px;
+}
+.sp-seg button.on {
+  background: var(--cream);
+  color: var(--ink);
+  border-color: var(--cream);
+}
+.shop-progress {
+  height: 4px;
+  border-radius: 4px;
+  background: var(--line);
+  overflow: hidden;
+}
+.shop-progress i {
+  display: block;
+  height: 100%;
+  background: var(--gold);
+  transition: width 0.4s;
+}
+.badge-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+@media (min-width: 440px) {
+  .badge-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+.badge-tile {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 8px 12px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: radial-gradient(120% 90% at 50% 0%, var(--surface-2), var(--bg-2) 70%);
+}
+.badge-tile .badge-art {
+  width: 100%;
+  max-width: 132px;
+  height: auto;
+  filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.45));
+}
+.badge-tile b {
+  font-family: 'Anton', 'Impact', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  letter-spacing: 0.05em;
+  color: var(--cream);
+  text-align: center;
+}
+.badge-tile.have {
+  border-color: rgba(201, 166, 107, 0.45);
+}
+.badge-tile.locked b {
+  color: var(--dim);
+}
+.badge-own,
+.badge-price {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+}
+.badge-own {
+  color: var(--olive-2);
+}
+.badge-price {
+  color: var(--gold);
+}
+.badge-hero {
+  display: grid;
+  place-items: center;
+  padding: 6px 0 4px;
+}
+.badge-hero .badge-art {
+  filter: drop-shadow(0 16px 26px rgba(0, 0, 0, 0.55));
+}
+.badge-name {
+  font-family: 'Anton', 'Impact', sans-serif;
+  font-weight: 400;
+  font-size: 34px;
+  letter-spacing: 0.02em;
+  color: var(--cream);
+}
+.badge-sub {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 19px;
+  color: var(--text);
+}
+.badge-blurb {
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.badge-facts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 12px 0;
+}
+.badge-facts span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line-2);
+}
+.badge-facts small {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-family: var(--mono);
+}
+.badge-facts b {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 17px;
+  color: var(--cream);
+}
+.badge-facts .icon {
+  color: var(--gold);
+}
+.badge-confirm,
+.badge-done,
+.badge-funds {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.badge-confirm p,
+.badge-funds p {
+  font-size: 14.5px;
+  color: var(--text);
+}
+.badge-done p {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 15px;
+  color: var(--olive-2);
+}
+.badge-note {
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--dim);
+}
