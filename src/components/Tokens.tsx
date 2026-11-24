@@ -2,7 +2,8 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useState } from 'react';
 import { create } from 'zustand';
-import { BADGE_PRICE, EXTRA_CHANCE_PRICE } from '../engine/tokens';
+import { EXTRA_CHANCE_PRICE } from '../engine/tokens';
+import { BADGES } from '../badges/catalog';
 import { useGame, useGate } from '../store/game';
 import { Btn, Icon, Sheet } from './ui';
 
@@ -45,7 +46,7 @@ export function TokensSheet() {
           <b>−{EXTRA_CHANCE_PRICE}</b> EXTRA CHANCE: una lección más el día que llegas a 3 errores.
         </li>
         <li>
-          <b>−{BADGE_PRICE}</b> un escudo de THE BADGE SHOP.
+          <b>−{Math.min(...BADGES.map((b) => b.price))}</b> un escudo de THE BADGE SHOP{new Set(BADGES.map((b) => b.price)).size > 1 ? ' (según el escudo)' : ''}.
         </li>
       </ul>
       <p className="tk-fine">No caducan, los errores no los quitan y no se compran con dinero.</p>

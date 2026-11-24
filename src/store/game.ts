@@ -10,8 +10,8 @@ import { masteredCount, newCard, onAnswer, onGrade, INTERVALS, type Card } from 
 import type { Challenge } from '../engine/challenges';
 import { weeklyPack } from '../engine/session';
 import { LEARNING_RUNS, afterReview, afterSession, gateFor, gateWithChance, nextLocalMidnight, settle, type ExtraChance, type ReviewLock } from '../engine/gate';
-import { BADGE_PRICE, EXTRA_CHANCE_PRICE, isPerfect, lessonKey, type TokenMove } from '../engine/tokens';
-import { BADGE_BY_ID } from '../data/badges';
+import { EXTRA_CHANCE_PRICE, isPerfect, lessonKey, type TokenMove } from '../engine/tokens';
+import { BADGE_BY_ID, canBuy, type PurchaseCheck } from '../badges/catalog';
 
 export type Screen = 'today' | 'library' | 'games' | 'phrases' | 'translate' | 'profile' | 'shop' | 'play' | 'quickfire' | 'memory' | 'twist' | 'voice' | 'results';
 export type RunMode = Challenge['mode'];
@@ -183,8 +183,8 @@ interface Actions {
   reset: () => void;
   /** Spends 1 token for one more lesson today. false if not locked today or not enough tokens. */
   buyExtraChance: () => boolean;
-  /** Spends 10 tokens on a badge. Never twice, never with an insufficient balance. */
-  buyBadge: (id: string) => 'ok' | 'owned' | 'funds' | 'unknown';
+  /** Spends the badge's price. Never twice, never if not on sale, never with an insufficient balance. */
+  buyBadge: (id: string) => PurchaseCheck;
 }
 
 export type GameState = Persisted & Volatile & Actions;
@@ -611,13 +611,12 @@ export const useGame = create<GameState>()(
         buyBadge: (id) => {
           const s = get();
           const badge = BADGE_BY_ID[id];
-          if (!badge) return 'unknown';
-          if (s.badges[id]) return 'owned';
-          if (s.tokens < BADGE_PRICE) return 'funds';
+          const check = canBuy(badge, s.badges, s.tokens);
+          if (check !== 'ok') return check;
           set({
-            tokens: s.tokens - BADGE_PRICE,
+            tokens: s.tokens - badge.price,
             badges: { ...s.badges, [id]: Date.now() },
-            tokenLog: withMove(s.tokenLog, move(-BADGE_PRICE, `Escudo: ${badge.name}`)),
+            tokenLog: withMove(s.tokenLog, move(-badge.price, `Escudo: ${badge.name}`)),
           });
           return 'ok';
         },

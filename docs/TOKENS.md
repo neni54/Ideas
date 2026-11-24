@@ -32,13 +32,13 @@ Los tokens se calculan dentro de la misma función que ya cerraba cada lección 
 
 ## THE BADGE SHOP · AMERICA COLLECTION
 
-- 10 escudos originales en SVG (`src/data/badges.tsx`):
+- 10 escudos originales en SVG (`src/badges/collections/america.tsx`). El catálogo es ampliable: ver `docs/BADGES.md`.
   NEW YORK, SAN FRANCISCO, ROUTE 66, GRAND CANYON, NYC TAXI, AMERICAN DINER, HOLLYWOOD,
   LAS VEGAS, BROOKLYN y AMERICAN BASEBALL.
   - Cada uno tiene su propia ilustración.
   - Acabado de parche bordado o de pin esmaltado.
   - Paleta: carbón, crema, burdeos y oro envejecido.
-- Precio único: 10 tokens.
+- Precio: 10 tokens (lo fija cada colección o escudo).
 - Al tocar un escudo se abre la vista ampliada: nombre, precio y saldo. Hay que confirmar antes de que se descuente nada.
 - Comprados una vez, son tuyos para siempre. No se pueden comprar dos veces.
 - **MY BADGE COLLECTION** muestra los 10: los tuyos en color y los que faltan bloqueados, pero visibles.

@@ -15,7 +15,9 @@
     "test:gate": "bash tests/run-gate-tests.sh",
     "build:ios": "tsc -b && vite build --mode ios",
     "ios:sync": "npm run build:ios && cap sync ios",
-    "ios:open": "cap open ios"
+    "ios:open": "cap open ios",
+    "test:badges": "npx --yes tsx --tsconfig tsconfig.json tests/badges.test.tsx",
+    "test:tokens": "bash tests/run-tokens-tests.sh"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "1.6.0",

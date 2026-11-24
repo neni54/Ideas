@@ -3,6 +3,7 @@ import type { Run } from '../store/game';
 
 /** Price list. Tokens can never be bought with money. */
 export const EXTRA_CHANCE_PRICE = 1;
+/** Default badge price (each collection/badge in src/badges sets its own). */
 export const BADGE_PRICE = 10;
 
 /** Lessons that pay a token when completed with zero mistakes. */
