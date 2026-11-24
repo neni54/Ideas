@@ -1,0 +1,391 @@
+import { useMemo, useState } from 'react';
+import { Bar, Btn, Dots, Icon, Ring, Sheet } from '../components/ui';
+import { ALL, ALL_LIST, PACK_BY_ID, plain } from '../data/content';
+import { ACHIEVEMENTS, MODES, titleFor } from '../data/meta';
+import { dayKey } from '../engine/date';
+import { levelFromXp } from '../engine/progression';
+import { masteredCount } from '../engine/srs';
+import { useServices } from '../services/api';
+import { BRAND, Logo } from '../components/Logo';
+import { useCloud, watchTesters, type TesterRow } from '../services/cloud';
+import { useEffect } from 'react';
+import { useGame } from '../store/game';
+import { STATUS_LABEL, statusOf } from '../engine/gate';
+import { weekDays } from './Today';
+
+/* ───────────── Phrasebook ───────────── */
+
+type Filter = 'all' | 'review' | 'learning' | 'mastered' | 'fav';
+
+export function Phrases() {
+  const { cards, openExpression, start, go } = useGame();
+  const [q, setQ] = useState('');
+  const [f, setF] = useState<Filter>('all');
+  const now = Date.now();
+  const list = useMemo(
+    () =>
+      Object.entries(cards)
+        .filter(([id]) => ALL[id])
+        .filter(([, c]) => (f === 'fav' ? c.fav : f === 'all' ? true : statusOf(c, now) === f))
+        .filter(([id]) => {
+          if (!q.trim()) return true;
+          const x = ALL[id];
+          const t = q.toLowerCase();
+          return plain(x.en).toLowerCase().includes(t) || x.es.toLowerCase().includes(t);
+        })
+        .sort((a, b) => b[1].first - a[1].first),
+    [cards, q, f, now],
+  );
+  const total = Object.keys(cards).length;
+  const due = Object.values(cards).filter((c) => statusOf(c, now) === 'review').length;
+
+  return (
+    <div className="screen phrases">
+      <div className="eyebrow">
+        Tu colección · {total} de {ALL_LIST.length}
+      </div>
+      <h1 className="display">Phrasebook</h1>
+      <div className="search">
+        <Icon name="search" size={17} />
+        <input id="phrase-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar en inglés o en español" />
+      </div>
+      <div className="filters">
+        {(
+          [
+            ['all', 'Todas'],
+            ['review', `Necesitan repaso · ${due}`],
+            ['learning', 'Aprendiendo'],
+            ['mastered', 'Dominadas'],
+            ['fav', 'Favoritas'],
+          ] as [Filter, string][]
+        ).map(([id, label]) => (
+          <button key={id} className={`filter ${f === id ? 'on' : ''}`} onClick={() => setF(id)}>
+            {label}
+          </button>
+        ))}
+      </div>
+      {f === 'review' && due > 0 && (
+        <Btn wide variant="secondary" onClick={() => start({ kind: 'memory' })}>
+          Repasar ahora en Memory
+        </Btn>
+      )}
+      {list.length === 0 ? (
+        <div className="empty">
+          <p className="serif-lg">{total === 0 ? 'Nothing here yet.' : 'No matches.'}</p>
+          <p className="muted">{total === 0 ? 'Cada expresión que descubras jugando se guarda aquí con su ficha completa.' : 'Prueba con otro filtro o búsqueda.'}</p>
+          {total === 0 && <Btn onClick={() => go('today')}>Empezar una lección</Btn>}
+        </div>
+      ) : (
+        <ul className="xlist xlist-big">
+          {list.map(([id, c]) => {
+            const x = ALL[id];
+            return (
+              <li key={id}>
+                <button onClick={() => openExpression(id)}>
+                  <span className="xlist-en">
+                    {c.fav && <Icon name="bookmark" size={13} fill className="fav-mark" />}
+                    {plain(x.en)}
+                  </span>
+                  <span className="xlist-es">{x.es}</span>
+                  <span className="xlist-meta">
+                    <span className={`status status-${statusOf(c, now)}`}>{STATUS_LABEL[statusOf(c, now)]}</span>
+                    <small>
+                      {x.level} · {PACK_BY_ID[x.pack].title}
+                    </small>
+                    <Dots value={c.box} />
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/* ───────────── Profile ───────────── */
+
+export function Profile() {
+  const s = useGame();
+  const [confirm, setConfirm] = useState(false);
+  const { level, into, need } = levelFromXp(s.xp);
+  const acc = s.stats.answered ? Math.round((s.stats.correct / s.stats.answered) * 100) : 0;
+  const mastered = masteredCount(s.cards);
+  const days = weekDays();
+  const maxXp = Math.max(40, ...days.map((d) => s.activity[d] ?? 0));
+  const byLevel = (['B1', 'B2', 'C1'] as const).map((l) => {
+    const all = ALL_LIST.filter((x) => x.level === l);
+    const seen = all.filter((x) => s.cards[x.id]).length;
+    const done = all.filter((x) => (s.cards[x.id]?.box ?? 0) >= 3).length;
+    return { l, total: all.length, seen, done };
+  });
+
+  return (
+    <div className="screen profile">
+      <header className="profile-head">
+        <Ring value={into / need} size={76} stroke={3} tone="accent">
+          <b className="serif-md">{level}</b>
+        </Ring>
+        <div>
+          <h1 className="display-sm">{s.name}</h1>
+          <p className="muted">
+            {titleFor(level)} · {need - into} XP para {titleFor(level + 1)}
+          </p>
+        </div>
+      </header>
+
+      <div className="kpis kpis-3">
+        <div className="kpi">
+          <b>{s.streak}</b>
+          <small>racha (máx. {s.bestStreak})</small>
+        </div>
+        <div className="kpi">
+          <b>{acc}%</b>
+          <small>precisión total</small>
+        </div>
+        <div className="kpi">
+          <b>{Object.keys(s.cards).length}</b>
+          <small>expresiones</small>
+        </div>
+        <div className="kpi">
+          <b>{mastered}</b>
+          <small>dominadas</small>
+        </div>
+        <div className="kpi">
+          <b>{s.stats.sessions}</b>
+          <small>sesiones</small>
+        </div>
+        <div className="kpi">
+          <b>{s.freezes}</b>
+          <small>escudos de racha</small>
+        </div>
+      </div>
+
+      <CloudStatus />
+      <TestersPanel />
+
+      <section className="block">
+        <h3 className="block-title">Últimos 7 días</h3>
+        <div className="week week-lg">
+          {days.map((d) => {
+            const v = s.activity[d] ?? 0;
+            return (
+              <div key={d} className={`wday ${d === dayKey() ? 'is-today' : ''}`}>
+                <small className="mono">{v || ''}</small>
+                <div className="wbar">
+                  <i style={{ height: `${(v / maxXp) * 100}%` }} />
+                </div>
+                <small>{new Date(d + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'short' })}</small>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="block">
+        <h3 className="block-title">Por nivel CEFR</h3>
+        <ul className="bars">
+          {byLevel.map((b) => (
+            <li key={b.l}>
+              <span className={`lvl lvl-${b.l}`}>{b.l}</span>
+              <Bar value={b.done} max={b.total} tone="olive" />
+              <small className="mono">
+                {b.done}/{b.total}
+              </small>
+            </li>
+          ))}
+        </ul>
+        <p className="note">Una expresión cuenta como asentada a partir de 3 de 5 en dominio.</p>
+      </section>
+
+      <section className="block">
+        <h3 className="block-title">Por modo</h3>
+        <ul className="bars">
+          {MODES.filter((m) => m.id !== 'memory').map((m) => {
+            const st = s.byMode[m.id];
+            const pct = st?.a ? st.c / st.a : 0;
+            return (
+              <li key={m.id}>
+                <span className="bars-label">{m.es}</span>
+                <Bar value={pct * 100} max={100} tone={pct >= 0.8 ? 'olive' : 'accent'} />
+                <small className="mono">{st?.a ? `${Math.round(pct * 100)}%` : '—'}</small>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+
+      <section className="block">
+        <h3 className="block-title">
+          Logros <span className="muted">{Object.keys(s.achievements).length}/{ACHIEVEMENTS.length}</span>
+        </h3>
+        <ul className="achs">
+          {ACHIEVEMENTS.map((a) => {
+            const got = !!s.achievements[a.id];
+            return (
+              <li key={a.id} className={got ? 'got' : ''}>
+                <span className="ach-mark">{got ? <Icon name="sparkle" size={14} /> : <Icon name="lock" size={13} />}</span>
+                <div>
+                  <b>{a.name}</b>
+                  <small>{a.desc}</small>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+
+      <section className="block">
+        <h3 className="block-title">Ajustes</h3>
+        <div className="settings">
+          <label className="toggle" htmlFor="set-sound">
+            <span>Sonidos</span>
+            <input id="set-sound" type="checkbox" checked={s.settings.sound} onChange={() => s.toggleSetting('sound')} />
+            <i />
+          </label>
+          <label className="toggle" htmlFor="set-voice">
+            <span>Reproducir la frase en inglés al responder</span>
+            <input id="set-voice" type="checkbox" checked={s.settings.voice} onChange={() => s.toggleSetting('voice')} />
+            <i />
+          </label>
+          <label className="toggle" htmlFor="set-fallback">
+            <span>Si la voz IA falla, usar la voz del dispositivo</span>
+            <input id="set-fallback" type="checkbox" checked={s.settings.browserVoiceFallback} onChange={() => s.toggleSetting('browserVoiceFallback')} />
+            <i />
+          </label>
+          <ServiceStatus />
+          <button className="danger-link" onClick={() => setConfirm(true)}>
+            Borrar todo el progreso
+          </button>
+        </div>
+      </section>
+
+      <footer className="brand-foot">
+        <Logo size={30} />
+        <p className="brand-tagline">{BRAND.tagline}</p>
+        <p className="muted">{BRAND.message}</p>
+      </footer>
+
+      <Sheet open={confirm} onClose={() => setConfirm(false)}>
+        <p className="serif-lg">Start over?</p>
+        <p className="muted">Se borran tu colección, tu nivel, tu racha y tus logros. No se puede deshacer.</p>
+        <div className="row-actions">
+          <Btn variant="ghost" onClick={() => setConfirm(false)}>
+            Cancelar
+          </Btn>
+          <Btn
+            onClick={() => {
+              s.reset();
+              setConfirm(false);
+            }}
+          >
+            Borrar
+          </Btn>
+        </div>
+      </Sheet>
+    </div>
+  );
+}
+
+function ServiceStatus() {
+  const { status, error, loaded } = useServices();
+  if (!loaded) return null;
+  const rows: [string, { ready: boolean; missing: string | null } | undefined, string][] = [
+    ['Traductor IA', status?.translate, status?.translate.provider === 'openai' ? 'OpenAI' : 'Claude'],
+    ['Voz IA en inglés', status?.tts, status?.tts.model ?? ''],
+    ['Reconocimiento de voz', status?.stt, status?.stt.model ?? ''],
+  ];
+  return (
+    <div className="services">
+      <div className="label">Servicios de IA</div>
+      {!status && <p className="note">{error}</p>}
+      {status &&
+        rows.map(([name, st, detail]) => (
+          <p key={name} className={`svc ${st?.ready ? 'ok' : 'ko'}`}>
+            <i />
+            <span>{name}</span>
+            <small>{st?.ready ? `activo · ${detail}` : `sin configurar · falta ${st?.missing}`}</small>
+          </p>
+        ))}
+    </div>
+  );
+}
+
+function ago(ts: number | null) {
+  if (!ts) return '';
+  const m = Math.round((Date.now() - ts) / 60000);
+  if (m < 1) return 'hace un momento';
+  if (m < 60) return `hace ${m} min`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `hace ${h} h`;
+  return `hace ${Math.round(h / 24)} d`;
+}
+
+function CloudStatus() {
+  const { state, message, savedAt } = useCloud();
+  if (state === 'off') return null;
+  const label =
+    state === 'connecting'
+      ? 'Conectando con la nube…'
+      : state === 'saving'
+        ? 'Guardando…'
+        : state === 'synced'
+          ? `Progreso guardado en la nube${savedAt ? ' · ' + ago(savedAt) : ''}`
+          : state === 'local-only'
+            ? 'Solo se guarda en este navegador'
+            : 'Problema al guardar';
+  return (
+    <div className={`cloud cloud-${state}`} role="status">
+      <i />
+      <div>
+        <b>{label}</b>
+        {message && <small>{message}</small>}
+      </div>
+    </div>
+  );
+}
+
+function TestersPanel() {
+  const [rows, setRows] = useState<TesterRow[] | null>(null);
+  useEffect(() => {
+    let off: (() => void) | undefined;
+    let alive = true;
+    watchTesters((r) => alive && setRows(r)).then((u) => (alive ? (off = u) : u()));
+    return () => {
+      alive = false;
+      off?.();
+    };
+  }, []);
+  if (!rows) return null;
+  return (
+    <section className="block">
+      <h3 className="block-title">
+        Probadores <span className="muted">{rows.length}</span>
+      </h3>
+      {rows.length === 0 ? (
+        <p className="note">Aún nadie ha jugado. Cuando alguien con acceso juegue, aparecerá aquí su progreso.</p>
+      ) : (
+        <ul className="testers">
+          {rows.map((r) => (
+            <li key={r.id}>
+              <div className="tester-head">
+                <b>{r.name || r.heroName || 'Alguien'}</b>
+                <small>{ago(r.updatedAt)}</small>
+              </div>
+              <div className="tester-stats">
+                <span>Nv {r.level}</span>
+                <span>{r.xp} XP</span>
+                <span>{r.sessions} sesiones</span>
+                <span>{r.answered ? Math.round((r.correct / r.answered) * 100) : 0}% aciertos</span>
+                <span>{r.phrases} frases · {r.mastered} dominadas</span>
+                <span>racha {r.streak}</span>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="note">Solo tú y los editores veis esta lista. El progreso completo de cada persona es privado.</p>
+    </section>
+  );
+}
