@@ -123,3 +123,32 @@ Navegador ──/api/translate──▶ server/index.mjs ──▶ Claude Opus 5
   que la interfaz muestra tal cual. Nada falla en silencio.
 - **Coste:** caché de audio en disco y memoria, deduplicación de peticiones simultáneas,
   límites por IP y longitud máxima de texto.
+
+---
+
+## 8. Progresión continua y regla de los 3 fallos (v2.2)
+
+Antes, la "Sesión de hoy" era única por día: al terminarla, la tarjeta principal pasaba a
+"Done for today" con un "Repetir (sin bonus)" secundario que apenas traía contenido nuevo, y los
+resultados no ofrecían una lección siguiente. Ahora:
+
+- **Lecciones ilimitadas.** "Siguiente lección" siempre disponible (resultados y Hoy). El bonus
+  de la primera lección del día se mantiene.
+- **Regla de los 3 fallos** (`src/engine/gate.ts`): en una sesión de aprendizaje (lección,
+  episodio o práctica de cualquier modo) se cuentan las **expresiones distintas falladas al primer
+  intento**; las segundas oportunidades nunca suman. Con 0, 1 o 2 se sigue aprendiendo. Con 3 o más
+  la sesión termina con normalidad, las falladas quedan para la **medianoche local** y se pausa
+  solo el contenido **nuevo** hasta el día siguiente.
+- **Durante la pausa** funcionan: lecciones de repaso (solo expresiones ya vistas), Memory,
+  Quick Fire, juegos (con lo ya visto), episodios de lo ya conocido, colección, estadísticas,
+  traductor y perfil.
+- **Al día siguiente** la lección empieza por las expresiones falladas; en cuanto se aciertan
+  (o se marcan "Me costó"/"Lo sabía" en Memory) vuelve el contenido nuevo, sin más esperas.
+  Si en ese repaso vuelve a haber 3 fallos, se aplica la regla de nuevo.
+- **Día local**: se compara la fecha del calendario local (`YYYY-MM-DD`), no 24 h de
+  temporizador. La app reevalúa el día a medianoche aunque siga abierta y al volver a primer
+  plano. El estado (`reviewLock`) se guarda con el resto del progreso (navegador y nube), así que
+  recargar no lo salta ni lo reinicia.
+- **Estado por expresión**: Nueva · Aprendiendo · Necesita repaso · Dominada (filtros en Frases).
+  Las falladas vuelven antes (Leitner caja 0) y las acertadas se espacian; las dominadas solo
+  rellenan una lección cuando no queda nada mejor que practicar.

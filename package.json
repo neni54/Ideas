@@ -11,7 +11,8 @@
     "start": "npm run build && node --env-file-if-exists=.env server/index.mjs",
     "serve": "node --env-file-if-exists=.env server/index.mjs",
     "typecheck": "tsc -b",
-    "test:api": "bash tests/run-api-tests.sh"
+    "test:api": "bash tests/run-api-tests.sh",
+    "test:gate": "bash tests/run-gate-tests.sh"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "1.6.0",

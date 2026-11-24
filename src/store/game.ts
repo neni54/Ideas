@@ -9,6 +9,7 @@ import { levelFromXp } from '../engine/progression';
 import { masteredCount, newCard, onAnswer, onGrade, INTERVALS, type Card } from '../engine/srs';
 import type { Challenge } from '../engine/challenges';
 import { weeklyPack } from '../engine/session';
+import { LEARNING_RUNS, afterReview, afterSession, gateFor, nextLocalMidnight, settle, type ReviewLock } from '../engine/gate';
 
 export type Screen = 'today' | 'library' | 'games' | 'phrases' | 'translate' | 'profile' | 'play' | 'quickfire' | 'memory' | 'results';
 export type RunMode = Challenge['mode'];
@@ -28,6 +29,10 @@ export interface RunSummary {
   xp: number;
   newIds: string[];
   missedIds: string[];
+  /** Distinct expressions missed on a first try in this session (retries never count). */
+  mistakes?: string[];
+  /** Gate state when the session started (to detect a completed review). */
+  gateAtStart?: import('../engine/gate').GateState;
   score?: number;
   ms: number;
 }
@@ -40,6 +45,12 @@ export interface RunResult extends RunSummary {
   streakUp?: number;
   newAchievements: string[];
   newBest?: boolean;
+  /** Set when this session hit the mistake limit: new content waits until tomorrow. */
+  lockTriggered?: { mistakes: number; ids: string[] };
+  /** Set when this session finished the review owed from a previous day. */
+  reviewCleared?: boolean;
+  /** Mistakes counted for the rule in this session. */
+  mistakeCount?: number;
 }
 
 export interface Toast {
@@ -87,6 +98,8 @@ interface Persisted {
   activity: Record<string, number>;
   missions: { day: string; list: MissionState[]; bonusClaimed: boolean };
   dailyDone: string | null;
+  reviewLock: ReviewLock | null;
+  lessons: number;
   achievements: Record<string, number>;
   recent: boolean[];
   settings: Settings;
@@ -176,6 +189,8 @@ const initial = (): Persisted => ({
   activity: {},
   missions: { day: dayKey(), list: dailyMissions(dayKey()), bonusClaimed: false },
   dailyDone: null,
+  reviewLock: null,
+  lessons: 0,
   achievements: {},
   recent: [],
   settings: { sound: true, voice: true, browserVoiceFallback: true },
@@ -251,6 +266,8 @@ export const useGame = create<GameState>()(
           const s = get();
           const today = dayKey();
           const patch: Partial<Persisted> = {};
+          const settled = settle(s.reviewLock, today);
+          if (settled !== s.reviewLock) patch.reviewLock = settled;
           if (s.missions.day !== today) patch.missions = { day: today, list: dailyMissions(today), bonusClaimed: false };
           if (s.hintsDay !== today) {
             patch.hints = Math.max(s.hints, 3);
@@ -288,6 +305,7 @@ export const useGame = create<GameState>()(
           const bm = s.byMode[mode] ?? { a: 0, c: 0 };
           set({
             cards,
+            reviewLock: correct && !isRetry ? afterReview(s.reviewLock, dayKey(), id) : s.reviewLock,
             recent: isRetry ? s.recent : [...s.recent, correct].slice(-30),
             byMode: { ...s.byMode, [mode]: { a: bm.a + 1, c: bm.c + (correct ? 1 : 0) } },
             stats: {
@@ -312,6 +330,7 @@ export const useGame = create<GameState>()(
           const card = s.cards[id] ?? newCard(Date.now());
           set({
             cards: { ...s.cards, [id]: onGrade(card, g, Date.now()) },
+            reviewLock: g >= 1 ? afterReview(s.reviewLock, dayKey(), id) : s.reviewLock,
             stats: { ...s.stats, memoryReviews: s.stats.memoryReviews + 1 },
           });
           bump('memory', 1);
@@ -333,7 +352,7 @@ export const useGame = create<GameState>()(
           }
           if (sum.run.kind === 'practice') bonuses.push({ label: 'Práctica completada', xp: 15 });
           const dailyFirst = sum.run.kind === 'daily' && s.dailyDone !== today;
-          if (dailyFirst) bonuses.push({ label: 'Sesión de hoy', xp: 40 });
+          if (dailyFirst) bonuses.push({ label: 'Primera lección del día', xp: 40 });
           if (sum.run.kind !== 'quickfire' && sum.run.kind !== 'memory' && sum.total >= 5 && accuracy === 1) bonuses.push({ label: 'Sin fallos', xp: 15 });
           const newBest = sum.run.kind === 'quickfire' && (sum.score ?? 0) > s.stats.qfBest;
           if (newBest && s.stats.qfBest > 0) bonuses.push({ label: 'Nuevo récord', xp: 20 });
@@ -357,6 +376,21 @@ export const useGame = create<GameState>()(
             const p = packs[sum.run.packId] ?? { plays: 0, best: 0 };
             packs[sum.run.packId] = { plays: p.plays + 1, best: Math.max(p.best, Math.round(accuracy * 100)) };
           }
+          // Three-mistake rule: only learning sessions count, and only distinct first-try misses.
+          const isLearning = (LEARNING_RUNS as readonly string[]).includes(sum.run.kind);
+          const mistakes = [...new Set(sum.mistakes ?? [])];
+          let reviewLock = isLearning ? afterSession(s.reviewLock, today, mistakes) : s.reviewLock;
+          reviewLock = settle(reviewLock, today);
+          const lockTriggered = isLearning && mistakes.length >= 3 ? { mistakes: mistakes.length, ids: mistakes } : undefined;
+          let cards = s.cards;
+          if (lockTriggered) {
+            // Missed expressions come back first thing tomorrow (local midnight), as the start of the review.
+            const due = nextLocalMidnight();
+            cards = { ...s.cards };
+            for (const id of mistakes) if (cards[id]) cards[id] = { ...cards[id], box: 0, due };
+          }
+          const reviewCleared = sum.gateAtStart === 'review-first' && gateFor(reviewLock, today).canLearnNew;
+
           const h = new Date().getHours();
           const byMode = { ...s.byMode };
           if (sum.run.kind === 'quickfire') {
@@ -373,6 +407,9 @@ export const useGame = create<GameState>()(
             packs,
             byMode,
             dailyDone: dailyFirst ? today : s.dailyDone,
+            reviewLock,
+            cards,
+            lessons: s.lessons + (sum.run.kind === 'daily' ? 1 : 0),
             activity: Object.fromEntries(Object.entries({ ...s.activity, [today]: (s.activity[today] ?? 0) + totalXp }).slice(-60)),
             stats: {
               ...s.stats,
@@ -390,7 +427,7 @@ export const useGame = create<GameState>()(
           const newAchievements = checkAchievements();
           set({
             screen: 'results',
-            result: { ...sum, accuracy, totalXp, bonuses, levelUp: to > from ? { from, to } : undefined, streakUp, newAchievements, newBest },
+            result: { ...sum, accuracy, totalXp, bonuses, levelUp: to > from ? { from, to } : undefined, streakUp, newAchievements, newBest, lockTriggered, reviewCleared, mistakeCount: isLearning ? mistakes.length : undefined },
           });
         },
 
@@ -469,3 +506,9 @@ export const useGame = create<GameState>()(
     },
   ),
 );
+
+/** Current progression gate for the user's local calendar day. */
+export const useGate = () => {
+  const lock = useGame((s) => s.reviewLock);
+  return gateFor(lock, dayKey());
+};

@@ -13,6 +13,7 @@ import { Results } from './screens/Results';
 import { Today } from './screens/Today';
 import { Phrases, Profile } from './screens/You';
 import { useGame } from './store/game';
+import { nextLocalMidnight } from './engine/gate';
 
 export default function App() {
   const onboarded = useGame((s) => s.onboarded);
@@ -27,6 +28,27 @@ export default function App() {
     if (useGame.persist.hasHydrated()) setHydrated(true);
     return off;
   }, [hydrated]);
+
+  // Re-evaluate the day (missions, streak, review lock) exactly at local midnight, even with the app open.
+  const [, setDayTick] = useState(0);
+  useEffect(() => {
+    if (!hydrated) return;
+    let t: number;
+    const arm = () => {
+      t = window.setTimeout(() => {
+        newDay();
+        setDayTick((n) => n + 1);
+        arm();
+      }, Math.max(1000, nextLocalMidnight() - Date.now() + 500));
+    };
+    arm();
+    const onVisible = () => document.visibilityState === 'visible' && (newDay(), setDayTick((n) => n + 1));
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearTimeout(t);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [hydrated, newDay]);
 
   useEffect(() => {
     if (!hydrated) return;

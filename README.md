@@ -54,7 +54,9 @@ tanto, no tiene traducción ni voz IA.
 - **9 modos de juego**: What Does It Really Mean?, Catch the Sarcasm, Literal vs. Natural,
   What Would You Say?, Context Detective, Complete the Conversation, Phrase Battle, Quick Fire
   y Memory.
-- **Sesión diaria de 5 minutos** con repasos, novedades y una sorpresa; frase del día;
+- **Lecciones continuas de 5 minutos** (repasos, novedades y una sorpresa) sin límite diario;
+  solo una lección con 3 fallos pausa el contenido nuevo hasta el día siguiente, que empieza
+  repasando lo fallado; frase del día;
   colección de la semana; retos diarios; resumen semanal.
 - **Traductor con IA** (inglés ↔ español de España) que conserva tono, sarcasmo y registro,
   explica idioms y doble sentido, da la traducción literal que *no* hay que usar y alternativas.
@@ -62,6 +64,13 @@ tanto, no tiene traducción ni voz IA.
   conversaciones completas con dos voces; práctica de pronunciación con reconocimiento de voz.
 - **Progresión**: XP, niveles con título, dominio por expresión con repetición espaciada,
   racha con escudos, comodines 50/50, 16 logros y estadísticas por modo y por nivel CEFR.
+
+## Pruebas
+
+```bash
+npm run test:gate   # progresión y regla de los 3 fallos en 5 zonas horarias
+npm run test:api    # servidor de IA contra un proveedor simulado (sin coste)
+```
 
 ## Añadir contenido
 

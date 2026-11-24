@@ -3046,3 +3046,87 @@ kbd {
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
+
+/* Progression: mistakes, review mode, statuses */
+.misses {
+  display: inline-flex;
+  gap: 3px;
+}
+.misses i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: 1px solid var(--wine-2);
+}
+.misses i.on {
+  background: var(--wine-2);
+}
+.daily.review {
+  background: radial-gradient(120% 90% at 100% 0%, rgba(201, 166, 107, 0.22), transparent 60%), linear-gradient(160deg, #2e2716, #1c1b18 75%);
+  border-color: rgba(201, 166, 107, 0.28);
+}
+.daily-sub {
+  color: var(--text);
+  font-size: 14px;
+}
+.lock-note {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  border-radius: var(--r);
+  border: 1px solid rgba(201, 166, 107, 0.35);
+  background: rgba(201, 166, 107, 0.07);
+  font-size: 14px;
+}
+.lock-title {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 21px;
+  line-height: 1.2;
+  color: var(--cream);
+}
+.clear-note {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--olive-soft);
+  color: var(--text);
+  font-size: 14px;
+}
+.clear-note b {
+  color: var(--olive-2);
+}
+.miss-note {
+  color: var(--muted);
+  font-size: 14px;
+}
+.status {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 5px;
+  border: 1px solid var(--line-2);
+  color: var(--muted);
+  white-space: nowrap;
+}
+.status-review {
+  color: var(--wine-2);
+  border-color: rgba(194, 90, 107, 0.45);
+}
+.status-mastered {
+  color: var(--olive-2);
+  border-color: rgba(181, 183, 124, 0.45);
+}
+.status-learning {
+  color: var(--gold);
+  border-color: rgba(201, 166, 107, 0.4);
+}
+.mode-chip:disabled {
+  opacity: 0.4;
+}

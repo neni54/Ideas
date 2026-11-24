@@ -5,7 +5,7 @@ import { Btn, CountUp, Icon, Sheet } from '../components/ui';
 import { ALL, plain } from '../data/content';
 import { ACHIEVEMENTS, titleFor } from '../data/meta';
 import { verdict } from '../data/voice';
-import { useGame } from '../store/game';
+import { useGame, useGate } from '../store/game';
 import { runLabel } from './Play';
 
 const mmss = (ms: number) => {
@@ -14,7 +14,8 @@ const mmss = (ms: number) => {
 };
 
 export function Results() {
-  const { result, start, quit, openExpression, stats } = useGame();
+  const { result, start, quit, openExpression, stats, cards } = useGame();
+  const gate = useGate();
   const [levelUp, setLevelUp] = useState(false);
   useEffect(() => {
     if (!result) return;
@@ -41,6 +42,38 @@ export function Results() {
         {v.title}
       </motion.h1>
       <p className="muted lead">{v.sub}</p>
+
+      {result.lockTriggered && (
+        <motion.section className="lock-note" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+          <p className="lock-title">
+            {result.lockTriggered.mistakes === 3 ? 'Three mistakes.' : `${result.lockTriggered.mistakes} mistakes.`} Looks like a few expressions need more attention. Tomorrow we&rsquo;ll make sure you master them.
+          </p>
+          <p>
+            El contenido nuevo vuelve mañana (desde las 00:00 de tu hora local), y empezaremos repasando estas {result.lockTriggered.ids.length} expresiones. Hoy puedes seguir
+            repasando lo que ya conoces, jugar a Memory y Quick Fire, y consultar tu colección.
+          </p>
+          <ul className="xlist">
+            {result.lockTriggered.ids.map((id) => (
+              <li key={id}>
+                <button onClick={() => openExpression(id)}>
+                  <span className="xlist-en">{plain(ALL[id].en)}</span>
+                  <span className="xlist-es">{ALL[id].gist}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </motion.section>
+      )}
+      {result.reviewCleared && (
+        <div className="clear-note">
+          <Icon name="check" size={16} /> <b>Review done. Back to new stuff.</b> El repaso de ayer está superado: el contenido nuevo vuelve a estar disponible.
+        </div>
+      )}
+      {result.mistakeCount !== undefined && !result.lockTriggered && (
+        <p className="miss-note">
+          {result.mistakeCount === 0 ? 'Cero fallos.' : result.mistakeCount === 1 ? 'Un fallo.' : 'Dos fallos.'} Puedes seguir aprendiendo ahora mismo.
+        </p>
+      )}
 
       <div className="kpis">
         {isQF ? (
@@ -134,10 +167,32 @@ export function Results() {
       )}
 
       <div className="row-actions sticky-actions">
-        <Btn variant="ghost" onClick={() => start(result.run)}>
-          <Icon name="refresh" size={16} /> Otra vez
-        </Btn>
-        <Btn onClick={() => quit()}>Continuar</Btn>
+        {isQF || isMem ? (
+          <>
+            <Btn variant="ghost" onClick={() => start(result.run)}>
+              <Icon name="refresh" size={16} /> Otra vez
+            </Btn>
+            <Btn onClick={() => quit()}>Continuar</Btn>
+          </>
+        ) : gate.canLearnNew ? (
+          <>
+            <Btn variant="ghost" onClick={() => quit()}>
+              Volver
+            </Btn>
+            <Btn onClick={() => start({ kind: 'daily' })}>
+              Siguiente lección <Icon name="arrow" size={16} />
+            </Btn>
+          </>
+        ) : (
+          <>
+            <Btn variant="ghost" onClick={() => quit()}>
+              Volver
+            </Btn>
+            <Btn onClick={() => start({ kind: 'daily' })} disabled={!Object.keys(cards).length}>
+              {gate.state === 'review-first' ? 'Seguir con el repaso' : 'Repasar lo aprendido'}
+            </Btn>
+          </>
+        )}
       </div>
 
       <Sheet open={levelUp} onClose={() => setLevelUp(false)} className="levelup">

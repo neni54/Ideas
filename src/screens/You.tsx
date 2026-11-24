@@ -9,11 +9,12 @@ import { useServices } from '../services/api';
 import { useCloud, watchTesters, type TesterRow } from '../services/cloud';
 import { useEffect } from 'react';
 import { useGame } from '../store/game';
+import { STATUS_LABEL, statusOf } from '../engine/gate';
 import { weekDays } from './Today';
 
 /* ───────────── Phrasebook ───────────── */
 
-type Filter = 'all' | 'due' | 'fav' | 'mastered';
+type Filter = 'all' | 'review' | 'learning' | 'mastered' | 'fav';
 
 export function Phrases() {
   const { cards, openExpression, start, go } = useGame();
@@ -24,7 +25,7 @@ export function Phrases() {
     () =>
       Object.entries(cards)
         .filter(([id]) => ALL[id])
-        .filter(([, c]) => (f === 'due' ? c.due <= now : f === 'fav' ? c.fav : f === 'mastered' ? c.box >= 5 : true))
+        .filter(([, c]) => (f === 'fav' ? c.fav : f === 'all' ? true : statusOf(c, now) === f))
         .filter(([id]) => {
           if (!q.trim()) return true;
           const x = ALL[id];
@@ -35,7 +36,7 @@ export function Phrases() {
     [cards, q, f, now],
   );
   const total = Object.keys(cards).length;
-  const due = Object.values(cards).filter((c) => c.due <= now).length;
+  const due = Object.values(cards).filter((c) => statusOf(c, now) === 'review').length;
 
   return (
     <div className="screen phrases">
@@ -51,9 +52,10 @@ export function Phrases() {
         {(
           [
             ['all', 'Todas'],
-            ['due', `Por repasar · ${due}`],
-            ['fav', 'Favoritas'],
+            ['review', `Necesitan repaso · ${due}`],
+            ['learning', 'Aprendiendo'],
             ['mastered', 'Dominadas'],
+            ['fav', 'Favoritas'],
           ] as [Filter, string][]
         ).map(([id, label]) => (
           <button key={id} className={`filter ${f === id ? 'on' : ''}`} onClick={() => setF(id)}>
@@ -61,7 +63,7 @@ export function Phrases() {
           </button>
         ))}
       </div>
-      {f === 'due' && due > 0 && (
+      {f === 'review' && due > 0 && (
         <Btn wide variant="secondary" onClick={() => start({ kind: 'memory' })}>
           Repasar ahora en Memory
         </Btn>
@@ -70,7 +72,7 @@ export function Phrases() {
         <div className="empty">
           <p className="serif-lg">{total === 0 ? 'Nothing here yet.' : 'No matches.'}</p>
           <p className="muted">{total === 0 ? 'Cada expresión que descubras jugando se guarda aquí con su ficha completa.' : 'Prueba con otro filtro o búsqueda.'}</p>
-          {total === 0 && <Btn onClick={() => go('today')}>Empezar la sesión de hoy</Btn>}
+          {total === 0 && <Btn onClick={() => go('today')}>Empezar una lección</Btn>}
         </div>
       ) : (
         <ul className="xlist xlist-big">
@@ -85,8 +87,10 @@ export function Phrases() {
                   </span>
                   <span className="xlist-es">{x.es}</span>
                   <span className="xlist-meta">
-                    <span className={`lvl lvl-${x.level}`}>{x.level}</span>
-                    <small>{PACK_BY_ID[x.pack].title}</small>
+                    <span className={`status status-${statusOf(c, now)}`}>{STATUS_LABEL[statusOf(c, now)]}</span>
+                    <small>
+                      {x.level} · {PACK_BY_ID[x.pack].title}
+                    </small>
                     <Dots value={c.box} />
                   </span>
                 </button>

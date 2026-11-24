@@ -14,18 +14,22 @@ import { XP_BY_LEVEL, XP_COMBO_BONUS, XP_RETRY, difficulty } from '../engine/pro
 import { buildDaily, buildEpisode, buildPractice } from '../engine/session';
 import { ModeView } from '../modes/Modes';
 import { playerLevel, useGame, type Run } from '../store/game';
+import { dayKey } from '../engine/date';
+import { gateFor } from '../engine/gate';
 
 function buildQueue(run: Run, s: ReturnType<typeof useGame.getState>, diff: 0 | 1 | 2): Challenge[] {
   const level = playerLevel(s.xp);
-  if (run.kind === 'episode') return buildEpisode(run.packId, s.cards, diff);
-  if (run.kind === 'daily') return buildDaily(s.cards, level, diff);
-  if (run.kind === 'practice') return buildPractice(run.mode, s.cards, level, diff, run.packId);
+  const gate = gateFor(s.reviewLock, dayKey());
+  const opts = { allowNew: gate.canLearnNew, priority: gate.state === 'review-first' ? gate.pending : [] };
+  if (run.kind === 'episode') return buildEpisode(run.packId, s.cards, diff, Date.now(), opts);
+  if (run.kind === 'daily') return buildDaily(s.cards, level, diff, Date.now(), opts);
+  if (run.kind === 'practice') return buildPractice(run.mode, s.cards, level, diff, run.packId, opts);
   return [];
 }
 
 export function runLabel(run: Run) {
   if (run.kind === 'episode') return PACK_BY_ID[run.packId].title;
-  if (run.kind === 'daily') return 'Sesión de hoy';
+  if (run.kind === 'daily') return 'Lección';
   if (run.kind === 'practice') return MODE_BY_ID[run.mode].title;
   return MODE_BY_ID[run.kind].title;
 }
@@ -49,9 +53,10 @@ export function Play() {
   const [line, setLine] = useState('');
   const [isNew, setIsNew] = useState(false);
   const [combo, setCombo] = useState(0);
+  const [missCount, setMissCount] = useState(0);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [quitting, setQuitting] = useState(false);
-  const acc = useRef({ total: 0, firstTry: 0, maxCombo: 0, xp: 0, newIds: [] as string[], missed: [] as string[], retried: new Set<string>(), t0: Date.now() });
+  const acc = useRef({ total: 0, firstTry: 0, maxCombo: 0, xp: 0, newIds: [] as string[], missed: [] as string[], retried: new Set<string>(), mistakes: new Set<string>(), gateAtStart: gateFor(useGame.getState().reviewLock, dayKey()).state, t0: Date.now() });
   const c = queue[idx];
 
   // Test hook for automated play-throughs (only with ?e2e in the URL).
@@ -67,7 +72,7 @@ export function Play() {
 
   const finish = useCallback(() => {
     const a = acc.current;
-    store.finishRun({ run, total: a.total, firstTry: a.firstTry, maxCombo: a.maxCombo, xp: a.xp, newIds: a.newIds, missedIds: [...new Set(a.missed)], ms: Date.now() - a.t0 });
+    store.finishRun({ run, total: a.total, firstTry: a.firstTry, maxCombo: a.maxCombo, xp: a.xp, newIds: a.newIds, missedIds: [...new Set(a.missed)], mistakes: [...a.mistakes], gateAtStart: a.gateAtStart, ms: Date.now() - a.t0 });
   }, [store, run]);
 
   const pick = useCallback(
@@ -90,6 +95,9 @@ export function Play() {
       } else {
         sfx.wrong();
         a.missed.push(c.x.id);
+        // One mistake per expression per session; second chances never add to the count.
+        if (!c.isRetry) a.mistakes.add(c.x.id);
+        setMissCount(a.mistakes.size);
         setLine(say(o.kind === 'literal' ? 'literal' : o.kind === 'calque' ? 'calque' : c.mode === 'sarcasm' ? 'wrongTone' : 'wrong'));
         if (!a.retried.has(c.x.id)) {
           a.retried.add(c.x.id);
@@ -123,7 +131,11 @@ export function Play() {
     return (
       <div className="screen center-screen">
         <p className="serif-lg">Nothing to play here yet.</p>
-        <p className="muted">Desbloquea más colecciones subiendo de nivel.</p>
+        <p className="muted">
+          {gateFor(store.reviewLock, dayKey()).canLearnNew
+            ? 'Desbloquea más colecciones subiendo de nivel.'
+            : 'Hoy solo se repasa lo que ya has visto, y aquí todavía no hay nada visto. Prueba la siguiente lección o Memory.'}
+        </p>
         <Btn onClick={() => store.quit()}>Volver</Btn>
       </div>
     );
@@ -147,6 +159,13 @@ export function Play() {
           <Icon name="x" size={18} />
         </button>
         <Bar value={idx + (picked ? 1 : 0)} max={queue.length} className="play-bar" />
+        {missCount > 0 && (
+          <span className={`misses ${missCount >= 3 ? 'over' : ''}`} title="Con 3 fallos en una lección, mañana toca repaso antes de contenido nuevo">
+            {[0, 1, 2].map((i) => (
+              <i key={i} className={i < missCount ? 'on' : ''} />
+            ))}
+          </span>
+        )}
         <AnimatePresence mode="popLayout">
           {combo >= 2 ? (
             <motion.span key={combo} className="combo" initial={{ y: -8, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ opacity: 0 }}>

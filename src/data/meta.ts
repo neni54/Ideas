@@ -106,5 +106,5 @@ export const MISSION_POOL: MissionTemplate[] = [
   { id: 'q12', kind: 'quickfire', target: 12, text: 'Haz 12 o más en Quick Fire', reward: 50 },
   { id: 'cb6', kind: 'combo', target: 6, text: 'Encadena 6 aciertos', reward: 45 },
   { id: 'd3', kind: 'discover', target: 3, text: 'Descubre 3 expresiones nuevas', reward: 40 },
-  { id: 'dm', kind: 'daily', target: 1, text: 'Completa la sesión de hoy', reward: 50 },
+  { id: 'dm', kind: 'daily', target: 1, text: 'Completa una lección', reward: 50 },
 ];

@@ -4,7 +4,8 @@ import { Btn, Dots, Icon, Ring, Sheet } from '../components/ui';
 import { PACKS, PACK_BY_ID, plain } from '../data/content';
 import { IN_RUN_MODES, MODES, MODE_BY_ID } from '../data/meta';
 import { dueIds } from '../engine/srs';
-import { packMastery, playerLevel, useGame, type RunMode } from '../store/game';
+import { packMastery, playerLevel, useGame, useGate, type RunMode } from '../store/game';
+import { packHasNew } from '../engine/session';
 
 /* ───────────── Library ───────────── */
 
@@ -33,7 +34,9 @@ export function Library() {
 
 export function PackSheet() {
   const s = useGame();
+  const gate = useGate();
   const p = s.openPack ? PACK_BY_ID[s.openPack] : null;
+  const knownInPack = p ? p.expressions.filter((x) => s.cards[x.id]).length : 0;
   const level = playerLevel(s.xp);
   return (
     <Sheet open={!!p} onClose={() => s.openPackSheet(null)} className="pack-sheet">
@@ -56,17 +59,31 @@ export function PackSheet() {
           </div>
           {p.unlock > level ? (
             <p className="locked-note">
-              <Icon name="lock" size={14} /> Se abre en el nivel {p.unlock}. Te faltan {p.unlock - level}. Mientras, alguna de sus frases puede salir como sorpresa en la sesión de hoy.
+              <Icon name="lock" size={14} /> Se abre en el nivel {p.unlock}. Te faltan {p.unlock - level}. Mientras, alguna de sus frases puede salir como sorpresa en una lección.
             </p>
           ) : (
             <>
-              <Btn wide onClick={() => s.start({ kind: 'episode', packId: p.id })}>
-                Jugar episodio · ~4 min <Icon name="play" size={14} fill />
-              </Btn>
+              {!gate.canLearnNew && packHasNew(p.id, s.cards) && (
+                <p className="locked-note">
+                  <Icon name="lock" size={14} />
+                  {gate.state === 'review-first'
+                    ? 'Las expresiones nuevas de esta colección vuelven en cuanto termines el repaso de ayer (en Hoy).'
+                    : 'Las expresiones nuevas de esta colección vuelven mañana. Hoy puedes repasar las que ya conoces.'}
+                </p>
+              )}
+              {gate.canLearnNew || !packHasNew(p.id, s.cards) ? (
+                <Btn wide onClick={() => s.start({ kind: 'episode', packId: p.id })}>
+                  Jugar episodio · ~4 min <Icon name="play" size={14} fill />
+                </Btn>
+              ) : (
+                <Btn wide variant="secondary" disabled={!knownInPack} onClick={() => s.start({ kind: 'episode', packId: p.id })}>
+                  {knownInPack ? `Repasar las ${knownInPack} que ya conoces` : 'Aún no conoces ninguna de esta colección'}
+                </Btn>
+              )}
               <div className="eyebrow">O practica un modo con esta colección</div>
               <div className="mode-chips">
                 {IN_RUN_MODES.map((m) => (
-                  <button key={m} className="mode-chip" onClick={() => s.start({ kind: 'practice', mode: m as RunMode, packId: p.id })}>
+                  <button key={m} className="mode-chip" disabled={!gate.canLearnNew && !knownInPack} onClick={() => s.start({ kind: 'practice', mode: m as RunMode, packId: p.id })}>
                     <span>{MODE_BY_ID[m].glyph}</span> {MODE_BY_ID[m].es}
                   </button>
                 ))}
@@ -101,12 +118,14 @@ export function PackSheet() {
 
 export function Games() {
   const s = useGame();
+  const gate = useGate();
   const due = dueIds(s.cards, Date.now()).length;
   return (
     <div className="screen games">
       <div className="eyebrow">Juegos · 9 modos</div>
       <h1 className="display">Same phrases. Nine ways to get them wrong.</h1>
       <p className="muted lead">Cada modo entrena una habilidad distinta. Las expresiones salen de tus colecciones abiertas.</p>
+      {!gate.canLearnNew && <p className="locked-note">Modo repaso: hoy los juegos usan solo expresiones que ya has visto. El contenido nuevo vuelve {gate.state === 'review-first' ? 'al terminar el repaso de ayer' : 'mañana'}.</p>}
       <div className="feature-row">
         <button className="feature" onClick={() => s.start({ kind: 'quickfire' })}>
           <span className="feature-glyph">⚡︎</span>

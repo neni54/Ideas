@@ -9,7 +9,7 @@ import { dayKey } from '../engine/date';
 import { levelFromXp } from '../engine/progression';
 import { phraseOfTheDay, weeklyPack } from '../engine/session';
 import { dueIds } from '../engine/srs';
-import { GOAL_PACKS, packMastery, useGame } from '../store/game';
+import { GOAL_PACKS, packMastery, useGame, useGate } from '../store/game';
 
 export function weekDays() {
   const out: string[] = [];
@@ -19,12 +19,12 @@ export function weekDays() {
 
 export function Today() {
   const s = useGame();
+  const gate = useGate();
   const today = dayKey();
   const { level, into, need } = levelFromXp(s.xp);
   const potd = phraseOfTheDay(today);
   const weekly = weeklyPack(today, level);
   const due = dueIds(s.cards, Date.now()).length;
-  const dailyDone = s.dailyDone === today;
   const open = PACKS.filter((p) => p.unlock <= level);
   const goalPacks = s.goals.flatMap((g) => GOAL_PACKS[g]);
   const recommended =
@@ -57,17 +57,45 @@ export function Today() {
         <small>{need - into} XP para {titleFor(level + 1)}</small>
       </div>
 
-      <motion.section className={`daily ${dailyDone ? 'done' : ''}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-        <div className="eyebrow">Sesión de hoy · 5 minutos</div>
-        <h2 className="serif-xl">{dailyDone ? 'Done for today. Smugly.' : 'Eight challenges. One surprise.'}</h2>
-        <p className="daily-mix">
-          <span>{Math.min(due, 3)} repasos</span>
-          <span>3 nuevas</span>
-          <span>1 sorpresa</span>
-        </p>
-        <Btn wide variant={dailyDone ? 'secondary' : 'primary'} onClick={() => s.start({ kind: 'daily' })}>
-          {dailyDone ? 'Repetir (sin bonus)' : 'Empezar'} <Icon name="arrow" size={16} />
-        </Btn>
+      <motion.section className={`daily ${gate.state !== 'open' ? 'review' : ''}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+        {gate.state === 'open' && (
+          <>
+            <div className="eyebrow">Lección {s.lessons + 1} · 5 minutos</div>
+            <h2 className="serif-xl">{s.dailyDone === today ? 'On a roll. Keep going?' : 'Eight challenges. One surprise.'}</h2>
+            <p className="daily-mix">
+              <span>{Math.min(due, 3)} repasos</span>
+              <span>3 nuevas</span>
+              <span>1 sorpresa</span>
+            </p>
+            <Btn wide onClick={() => s.start({ kind: 'daily' })}>
+              {s.lessons ? 'Siguiente lección' : 'Empezar'} <Icon name="arrow" size={16} />
+            </Btn>
+          </>
+        )}
+        {gate.state === 'locked-today' && (
+          <>
+            <div className="eyebrow">Modo repaso · contenido nuevo mañana</div>
+            <h2 className="serif-xl">A few expressions need more attention.</h2>
+            <p className="daily-sub">
+              Mañana (desde las 00:00) empezamos por las {gate.pending.length} expresiones que se te resistieron. Hoy puedes seguir repasando todo lo que ya conoces.
+            </p>
+            <Btn wide variant="secondary" onClick={() => s.start({ kind: 'daily' })} disabled={!Object.keys(s.cards).length}>
+              Repasar lo aprendido <Icon name="arrow" size={16} />
+            </Btn>
+          </>
+        )}
+        {gate.state === 'review-first' && (
+          <>
+            <div className="eyebrow">Primero, el repaso de ayer</div>
+            <h2 className="serif-xl">
+              {gate.pending.length} expresi{gate.pending.length === 1 ? 'ón' : 'ones'} y vía libre.
+            </h2>
+            <p className="daily-sub">Acierta las que fallaste y el contenido nuevo vuelve en cuanto termines. Sin esperar a nada más.</p>
+            <Btn wide onClick={() => s.start({ kind: 'daily' })}>
+              Repasar ahora <Icon name="arrow" size={16} />
+            </Btn>
+          </>
+        )}
       </motion.section>
 
       <section className="potd">
