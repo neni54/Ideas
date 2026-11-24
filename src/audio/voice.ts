@@ -4,9 +4,9 @@
 // - Pause / resume / replay, slow mode, sequences (a whole conversation), loading and error states.
 // - If the AI voice is unavailable, an explicitly labelled browser-voice fallback (can be disabled).
 import { create } from 'zustand';
-import { ApiError, fetchSpeech, type Tone } from '../services/api';
+import { ApiError, fetchSpeech, useServices, type Tone } from '../services/api';
 import { useGame } from '../store/game';
-import { browserSpeak, canBrowserSpeak, cancelBrowserSpeech } from './speech';
+import { NativeVoiceError, browserSpeak, canBrowserSpeak, cancelBrowserSpeech, pauseBrowserSpeech, resumeBrowserSpeech } from './speech';
 
 export interface Clip {
   text: string;
@@ -175,6 +175,31 @@ export interface PlayOpts {
 
 let lastOpts: PlayOpts = {};
 
+/* ───── Which voice to use: decided BEFORE any request ─────
+   'ai'     → AI voice from the server (/api/tts).
+   'device' → native speech synthesis on the phone. No HTTP request at all.
+   'none'   → neither is possible: a clear message, no request. */
+type Route = 'ai' | 'device' | 'none';
+
+/** Set when the AI voice failed in this session: later taps go straight to the device voice. */
+let aiDown = false;
+
+const deviceAllowed = (opts: PlayOpts) => opts.fallback !== false && useGame.getState().settings.browserVoiceFallback && canBrowserSpeak();
+
+function route(opts: PlayOpts): Route {
+  const sv = useServices.getState();
+  // The server already told us there is no AI voice (no OPENAI_API_KEY, or no server at all).
+  const knownDown = aiDown || (sv.loaded && (!sv.status || !sv.status.tts.ready));
+  if (!knownDown) return 'ai';
+  return deviceAllowed(opts) ? 'device' : 'none';
+}
+
+function noVoiceMessage(opts: PlayOpts): string {
+  if (opts.fallback === false) return 'Este modo necesita la voz IA, que no está activada en este servidor.';
+  if (!canBrowserSpeak()) return 'Este navegador no puede leer en voz alta. Prueba en Safari (iPhone) o Chrome (Android).';
+  return 'La voz IA no está disponible. Activa "usar la voz del dispositivo" en Perfil para escuchar las frases.';
+}
+
 export async function play(clips: Clip[], label = clips[0]?.text ?? '', opts: PlayOpts = {}) {
   if (!clips.length) return;
   const my = ++token;
@@ -184,11 +209,27 @@ export async function play(clips: Clip[], label = clips[0]?.text ?? '', opts: Pl
   lastLabel = label;
   lastOpts = opts;
   unlockAudio();
-  const a = audio();
-  a.pause();
+  el?.pause();
   cancelBrowserSpeech();
-  set({ key, label, status: 'loading', error: null, index: 0, total: clips.length, source: 'ai' });
 
+  // First tap before the app knew whether the server has an AI voice: ask (status only, never audio).
+  if (!useServices.getState().loaded) {
+    set({ key, label, status: 'loading', error: null, index: 0, total: clips.length, source: null });
+    await Promise.race([useServices.getState().load(), new Promise((r) => setTimeout(r, 2500))]);
+    if (my !== token) return;
+  }
+  const r = route(opts);
+  if (r === 'none') {
+    set({ key, label, status: 'error', source: null, error: noVoiceMessage(opts), index: 0, total: clips.length });
+    return;
+  }
+  if (r === 'device') {
+    set({ key, label, error: null, index: 0, total: clips.length, fallbackReason: null });
+    return playWithBrowser(clips, my, 0);
+  }
+
+  // AI voice path (server). Only reached when the server may have it.
+  set({ key, label, status: 'loading', error: null, index: 0, total: clips.length, source: 'ai' });
   // Prefetch the whole sequence so a conversation flows without gaps.
   const urls = clips.map((c) => getUrl(c));
   urls.forEach((p) => p.catch(() => undefined));
@@ -202,17 +243,22 @@ export async function play(clips: Clip[], label = clips[0]?.text ?? '', opts: Pl
       await playUrl(url, my);
     } catch (e) {
       if (my !== token) return;
-      if (opts.fallback !== false && aiUnavailable(e) && useGame.getState().settings.browserVoiceFallback && canBrowserSpeak()) {
+      const requestFailed = e instanceof ApiError; // the server could not give us audio (any status)
+      if (requestFailed && aiUnavailable(e)) aiDown = true;
+      if (requestFailed && deviceAllowed(opts)) {
+        // Whatever the server answered (503, 404, HTML…), fall back to the device voice.
+        aiDown = true;
         set({ fallbackReason: (e as Error).message });
         return playWithBrowser(clips.slice(i), my, i);
       }
-      set({ status: 'error', error: (e as Error).message });
+      set({ status: 'error', error: requestFailed && !aiUnavailable(e) && opts.fallback !== false ? noVoiceMessage(opts) : (e as Error).message });
       return;
     }
   }
   if (my === token) set({ status: 'idle', index: 0 });
 }
 
+/** Device voice path: native speech synthesis only. Makes no HTTP request. */
 async function playWithBrowser(clips: Clip[], my: number, offset: number) {
   set({ source: 'browser', status: 'loading' });
   try {
@@ -223,14 +269,14 @@ async function playWithBrowser(clips: Clip[], my: number, offset: number) {
     }
     if (my === token) set({ status: 'idle' });
   } catch (e) {
-    if (my === token) set({ status: 'error', error: (e as Error).message });
+    if (my === token) set({ status: 'error', error: e instanceof NativeVoiceError ? e.message : `La voz del dispositivo falló: ${(e as Error).message}` });
   }
 }
 
 export function pause() {
   const s = useAudio.getState();
   if (s.status !== 'playing') return;
-  if (s.source === 'browser') speechSynthesis.pause();
+  if (s.source === 'browser') pauseBrowserSpeech();
   else audio().pause();
   set({ status: 'paused' });
 }
@@ -240,7 +286,7 @@ export function resume() {
   if (s.status !== 'paused') return;
   unlockAudio();
   if (s.source === 'browser') {
-    speechSynthesis.resume();
+    resumeBrowserSpeech();
     set({ status: 'playing' });
   } else
     audio()

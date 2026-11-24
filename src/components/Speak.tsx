@@ -78,9 +78,9 @@ export function AudioBar() {
                     {s.total > 1 ? ` · ${s.index + 1}/${s.total}` : ''}
                   </b>
                   <small>
-                    <span className={`src ${s.source === 'browser' ? 'src-browser' : ''}`}>{s.source === 'browser' ? 'Voz del navegador' : 'Voz IA'}</span> “{s.label}”
+                    <span className={`src ${s.source === 'browser' ? 'src-browser' : ''}`}>{s.source === 'browser' ? 'Voz del dispositivo' : 'Voz IA'}</span> “{s.label}”
                   </small>
-                  {s.source === 'browser' && s.fallbackReason && <small className="audiobar-why">La voz IA no está disponible: {s.fallbackReason}</small>}
+                  {s.source === 'browser' && s.fallbackReason && <small className="audiobar-why">La voz IA no respondió: suena la voz de tu dispositivo.</small>}
                 </>
               )}
             </div>

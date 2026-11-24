@@ -1,42 +1,96 @@
-// Browser speech synthesis — used ONLY as a clearly labelled fallback when the AI voice is unavailable.
-// Fixes over the previous version: waits for the voice list, avoids the cancel()+speak() race that
-// made Chrome drop the utterance, and reports errors instead of swallowing them.
+// Device voice (native speech synthesis: window.speechSynthesis + SpeechSynthesisUtterance).
+// This file makes NO network requests: it is the native path, fully separate from the AI voice
+// (src/audio/voice.ts → /api/tts). It never needs a server or an API key.
 
 export const canBrowserSpeak = () => typeof window !== 'undefined' && 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
 
-function voices(): Promise<SpeechSynthesisVoice[]> {
-  const now = speechSynthesis.getVoices();
+export class NativeVoiceError extends Error {}
+
+/** Voices the device has right now (may be empty until the browser fires `voiceschanged`). */
+const voicesNow = () => (canBrowserSpeak() ? speechSynthesis.getVoices() : []);
+
+/** Waits for the voice list (iOS and Chrome load it asynchronously). Never rejects. */
+function loadVoices(timeoutMs = 1200): Promise<SpeechSynthesisVoice[]> {
+  const now = voicesNow();
   if (now.length) return Promise.resolve(now);
   return new Promise((resolve) => {
-    const done = () => resolve(speechSynthesis.getVoices());
-    speechSynthesis.addEventListener('voiceschanged', done, { once: true });
-    setTimeout(done, 1500);
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      speechSynthesis.removeEventListener('voiceschanged', finish);
+      resolve(voicesNow());
+    };
+    speechSynthesis.addEventListener('voiceschanged', finish);
+    setTimeout(finish, timeoutMs);
   });
+}
+
+// Start loading the list as soon as the app opens, so it is ready by the first tap.
+if (canBrowserSpeak()) loadVoices().catch(() => undefined);
+
+const GOOD_US = /Samantha|Ava|Allison|Susan|Zoe|Nicky|Siri|Natural|Neural|Enhanced|Premium|Google US|Aria|Jenny|Guy/i;
+
+/** Best English voice: a good en-US voice, then any en-US, then any English. null = let the device choose. */
+export function pickEnglishVoice(list: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null {
+  const en = list.filter((v) => /^en([-_]|$)/i.test(v.lang));
+  const us = en.filter((v) => /^en[-_]US$/i.test(v.lang));
+  return us.find((v) => GOOD_US.test(v.name) && v.localService !== false) ?? us.find((v) => GOOD_US.test(v.name)) ?? us.find((v) => v.default) ?? us[0] ?? en[0] ?? null;
+}
+
+/** Name of the voice that will be used, for the player label ("" until the list is known). */
+export function nativeVoiceName(): string {
+  const v = pickEnglishVoice(voicesNow());
+  return v ? v.name.replace(/\s*\(.*\)$/, '') : '';
 }
 
 export function cancelBrowserSpeech() {
   if (canBrowserSpeak()) speechSynthesis.cancel();
 }
+export function pauseBrowserSpeech() {
+  if (canBrowserSpeak()) speechSynthesis.pause();
+}
+export function resumeBrowserSpeech() {
+  if (canBrowserSpeak()) speechSynthesis.resume();
+}
 
-/** Speaks text with the best English voice the device has. Resolves when finished. */
+/**
+ * Speaks `text` in English with the device voice. Resolves when it finishes (or is stopped).
+ * Call it from a tap: iOS only lets speech start after a user gesture.
+ */
 export async function browserSpeak(text: string, slow: boolean, hooks: { onStart?: () => void } = {}): Promise<void> {
-  if (!canBrowserSpeak()) throw new Error('Este navegador no tiene síntesis de voz.');
-  const list = await voices();
-  const en = list.filter((v) => /^en[-_]/i.test(v.lang));
-  if (!en.length) throw new Error('Este dispositivo no tiene ninguna voz en inglés instalada.');
-  const voice =
-    en.find((v) => /en[-_]US/i.test(v.lang) && /Natural|Neural|Google|Samantha|Aria|Jenny|Ava/i.test(v.name)) ?? en.find((v) => /en[-_]US/i.test(v.lang)) ?? en[0];
-  speechSynthesis.cancel();
-  // Give the engine a tick after cancel(): speaking immediately is silently dropped by some Chrome versions.
-  await new Promise((r) => setTimeout(r, 60));
+  if (!canBrowserSpeak()) throw new NativeVoiceError('Este navegador no puede leer en voz alta. Prueba en Safari (iPhone) o Chrome (Android).');
+  const voice = pickEnglishVoice(await loadVoices());
+  if (speechSynthesis.speaking || speechSynthesis.pending) {
+    speechSynthesis.cancel();
+    // A tick after cancel(): speaking immediately is silently dropped by some engines.
+    await new Promise((r) => setTimeout(r, 60));
+  }
   return new Promise((resolve, reject) => {
     const u = new SpeechSynthesisUtterance(text);
-    u.voice = voice;
-    u.lang = voice.lang;
+    // Without a voice object, lang alone makes the device use its default American English voice.
+    if (voice) u.voice = voice;
+    u.lang = voice?.lang || 'en-US';
     u.rate = slow ? 0.7 : 0.95;
+    let settled = false;
+    const end = (fn: () => void) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(watchdog);
+      fn();
+    };
+    // iOS sometimes never fires onend; never leave the player stuck in "playing".
+    const watchdog = window.setTimeout(() => end(resolve), 4000 + (text.length * 110) / u.rate);
     u.onstart = () => hooks.onStart?.();
-    u.onend = () => resolve();
-    u.onerror = (e) => (e.error === 'interrupted' || e.error === 'canceled' ? resolve() : reject(new Error(`La voz del navegador falló (${e.error}).`)));
+    u.onend = () => end(resolve);
+    u.onerror = (e) =>
+      end(() =>
+        e.error === 'interrupted' || e.error === 'canceled'
+          ? resolve()
+          : reject(new NativeVoiceError(e.error === 'not-allowed' ? 'Toca de nuevo el altavoz para escuchar la frase.' : `La voz del dispositivo falló (${e.error}).`)),
+      );
     speechSynthesis.speak(u);
+    // iOS: if the engine was paused by a previous pause(), make sure it runs.
+    if (speechSynthesis.paused) speechSynthesis.resume();
   });
 }

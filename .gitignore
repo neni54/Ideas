@@ -9,3 +9,6 @@ dist-single
 tsconfig.tsbuildinfo
 !.env.ios.example
 test-results
+
+# Local Netlify folder
+.netlify
