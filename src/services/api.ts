@@ -35,13 +35,17 @@ export interface Translation {
   provider: string;
 }
 
-const NO_SERVER =
-  'No hay servidor de IA en esta versión. Ejecuta la app con "npm start" (o "npm run dev" + "npm run dev:api") y configura las claves en .env.';
+// Web: same origin (''). iOS app (Capacitor): the deployed server, set at build time in .env.production.
+const API_BASE = (import.meta.env.VITE_API_BASE ?? '').replace(/\/+$/, '');
+
+const NO_SERVER = API_BASE
+  ? 'No se puede conectar con el servidor de SIDEYE. Revisa tu conexión e inténtalo de nuevo.'
+  : 'No hay servidor de IA en esta versión. Ejecuta la app con "npm start" (o "npm run dev" + "npm run dev:api") y configura las claves en .env.';
 
 async function call(path: string, init: RequestInit): Promise<Response> {
   let res: Response;
   try {
-    res = await fetch(path, init);
+    res = await fetch(API_BASE + path, init);
   } catch (e) {
     if ((e as Error).name === 'AbortError') throw e;
     throw new ApiError('offline', navigator.onLine === false ? 'Sin conexión a internet.' : NO_SERVER);

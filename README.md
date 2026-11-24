@@ -8,6 +8,9 @@ Una app para aprender el inglés que no viene en los libros:
 sarcasmo, indirectas, slang, citas, oficina y conversaciones reales. Para adultos, de B1 a C1.
 
 > Diseño, contenido, mecánicas y qué cambió respecto a la v1: [`docs/DISENO.md`](docs/DISENO.md)
+>
+> **App de iPhone y App Store:** [`docs/APP_STORE.md`](docs/APP_STORE.md) (publicar el servidor,
+> compartir por enlace o TestFlight y enviar a revisión).
 
 ## Ejecutar
 

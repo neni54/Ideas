@@ -12,7 +12,11 @@ const DIST = join(ROOT, 'dist');
 const CACHE_DIR = resolve(process.env.TTS_CACHE_DIR || join(ROOT, '.cache', 'tts'));
 const PORT = Number(process.env.PORT || 8787);
 
-const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.json': 'application/json', '.mp3': 'audio/mpeg' };
+// Origins allowed to call /api from another origin: the iOS app (Capacitor serves it from
+// capacitor://localhost) plus anything listed in ALLOWED_ORIGINS (comma-separated).
+const CORS_ORIGINS = new Set(['capacitor://localhost', 'ionic://localhost', ...(process.env.ALLOWED_ORIGINS || '').split(',').map((o) => o.trim()).filter(Boolean)]);
+
+const MIME = { '.webmanifest': 'application/manifest+json', '.txt': 'text/plain; charset=utf-8', '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.json': 'application/json', '.mp3': 'audio/mpeg' };
 
 /* ───── helpers ───── */
 
@@ -167,6 +171,15 @@ async function staticFile(req, res, path) {
 
 const server = createServer(async (req, res) => {
   const path = (req.url || '/').split('?')[0];
+  const origin = req.headers.origin;
+  if (path.startsWith('/api/') && origin && CORS_ORIGINS.has(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204, { 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Max-Age': '86400' });
+      return res.end();
+    }
+  }
   try {
     if (path.startsWith('/api/')) await api(req, res, path);
     else await staticFile(req, res, path);

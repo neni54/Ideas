@@ -1,0 +1,17 @@
+# Render Blueprint: one click deploys the SIDEYE server (web app + /api for the iOS app).
+# Render → New → Blueprint → pick this repository. Then fill in the two keys when asked.
+services:
+  - type: web
+    name: sideye
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: npm run serve
+    healthCheckPath: /api/status
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
