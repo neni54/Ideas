@@ -1,0 +1,45 @@
+# SIDEYE · versión de pruebas en Netlify (web app / PWA + funciones de IA).
+# La versión original (Artifact en claude.ai y rama claude/dreamy-lamport-hut2jt) no usa este archivo.
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+  included_files = ["server/providers.mjs"]
+
+# The service worker and the app shell are always revalidated; hashed build files are immutable.
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+    Service-Worker-Allowed = "/"
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-cache"
+[[headers]]
+  for = "/manifest.webmanifest"
+  [headers.values]
+    Content-Type = "application/manifest+json"
+    Cache-Control = "no-cache"
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "microphone=(self)"
+
+# Single-page app: unknown paths open the app (existing files and /api/* are served first).
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

@@ -145,7 +145,7 @@ async function translateAnthropic(text, direction, context) {
       max_tokens: 4000,
       betas: ['server-side-fallback-2026-07-01'],
       fallbacks: 'default',
-      output_config: { effort: 'medium', format: { type: 'json_schema', schema: TRANSLATION_SCHEMA } },
+      output_config: { effort: env('TRANSLATE_EFFORT', 'medium'), format: { type: 'json_schema', schema: TRANSLATION_SCHEMA } },
       system: SYSTEM,
       messages: [{ role: 'user', content: userPrompt(text, direction, context) }],
     });
