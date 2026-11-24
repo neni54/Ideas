@@ -59,6 +59,62 @@ function audio(): HTMLAudioElement {
   return el;
 }
 
+/* ───── iOS: unlock audio inside the first tap ─────
+   Safari (and installed web apps on iPhone) only lets an <audio> element play if it was first
+   started during a user gesture. Our AI clips arrive after a network request, outside the tap,
+   so the shared element is "unlocked" with a short silent clip during the tap itself. */
+let unlocked = false;
+let silentUrl = '';
+function silence(): string {
+  if (!silentUrl) {
+    const n = 800; // 0.1 s of 8 kHz 8-bit silence
+    const b = new DataView(new ArrayBuffer(44 + n));
+    const str = (o: number, t: string) => [...t].forEach((ch, i) => b.setUint8(o + i, ch.charCodeAt(0)));
+    str(0, 'RIFF');
+    b.setUint32(4, 36 + n, true);
+    str(8, 'WAVEfmt ');
+    b.setUint32(16, 16, true);
+    b.setUint16(20, 1, true);
+    b.setUint16(22, 1, true);
+    b.setUint32(24, 8000, true);
+    b.setUint32(28, 8000, true);
+    b.setUint16(32, 1, true);
+    b.setUint16(34, 8, true);
+    str(36, 'data');
+    b.setUint32(40, n, true);
+    for (let i = 0; i < n; i++) b.setUint8(44 + i, 128);
+    silentUrl = URL.createObjectURL(new Blob([b.buffer], { type: 'audio/wav' }));
+  }
+  return silentUrl;
+}
+/** Call synchronously from a tap/click handler. Safe to call many times. */
+export function unlockAudio() {
+  if (unlocked || typeof window === 'undefined') return;
+  unlocked = true;
+  const a = audio();
+  if (!a.src || a.paused) {
+    a.src = silence();
+    a.play().catch(() => {
+      unlocked = false;
+    });
+  }
+  // The device voice (fallback) has the same rule on iOS.
+  if (canBrowserSpeak() && useGame.getState().settings.browserVoiceFallback) {
+    try {
+      const u = new SpeechSynthesisUtterance(' ');
+      u.volume = 0;
+      speechSynthesis.speak(u);
+    } catch {
+      /* not available */
+    }
+  }
+}
+if (typeof document !== 'undefined') {
+  const first = () => unlockAudio();
+  document.addEventListener('pointerdown', first, { capture: true, passive: true });
+  document.addEventListener('keydown', first, { capture: true });
+}
+
 function getUrl(c: Clip): Promise<string> {
   const k = clipKey(c);
   let p = urlCache.get(k);
@@ -127,6 +183,7 @@ export async function play(clips: Clip[], label = clips[0]?.text ?? '', opts: Pl
   lastKey = key;
   lastLabel = label;
   lastOpts = opts;
+  unlockAudio();
   const a = audio();
   a.pause();
   cancelBrowserSpeech();
@@ -181,6 +238,7 @@ export function pause() {
 export function resume() {
   const s = useAudio.getState();
   if (s.status !== 'paused') return;
+  unlockAudio();
   if (s.source === 'browser') {
     speechSynthesis.resume();
     set({ status: 'playing' });

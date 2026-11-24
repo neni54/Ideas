@@ -8,3 +8,4 @@ dist-single
 .cache
 tsconfig.tsbuildinfo
 !.env.ios.example
+test-results

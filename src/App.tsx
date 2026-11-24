@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { ExpressionSheet } from './components/ExpressionCard';
 import { AudioBar } from './components/Speak';
+import { UpdateBanner } from './components/Pwa';
 import { Logo } from './components/Logo';
 import { Translate } from './screens/Translate';
 import { Twist } from './screens/Twist';
@@ -110,6 +111,7 @@ export default function App() {
       <ExpressionSheet />
       <PackSheet />
       <Toasts />
+      <UpdateBanner />
     </div>
   );
 }

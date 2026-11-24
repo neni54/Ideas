@@ -1,7 +1,8 @@
 // SIDEYE server: serves the built app and the AI endpoints. No API key ever reaches the browser.
 //   node --env-file-if-exists=.env server/index.mjs
-import { createHash } from 'node:crypto';
+import { createHash, timingSafeEqual } from 'node:crypto';
 import { createServer } from 'node:http';
+import { brotliCompressSync, gzipSync, constants as zlib } from 'node:zlib';
 import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { extname, join, normalize, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -16,7 +17,7 @@ const PORT = Number(process.env.PORT || 8787);
 // capacitor://localhost) plus anything listed in ALLOWED_ORIGINS (comma-separated).
 const CORS_ORIGINS = new Set(['capacitor://localhost', 'ionic://localhost', ...(process.env.ALLOWED_ORIGINS || '').split(',').map((o) => o.trim()).filter(Boolean)]);
 
-const MIME = { '.webmanifest': 'application/manifest+json', '.txt': 'text/plain; charset=utf-8', '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.json': 'application/json', '.mp3': 'audio/mpeg' };
+const MIME = { '.woff2': 'font/woff2', '.woff': 'font/woff', '.webp': 'image/webp', '.webmanifest': 'application/manifest+json', '.txt': 'text/plain; charset=utf-8', '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.json': 'application/json', '.mp3': 'audio/mpeg' };
 
 /* ───── helpers ───── */
 
@@ -115,8 +116,14 @@ async function cachedSpeech(params) {
 
 /* ───── routes ───── */
 
+/** Optional ACCESS_CODE: when set, the AI endpoints (which cost money) need the code. */
+const ACCESS_CODE = (process.env.ACCESS_CODE || '').trim();
+const digest = (v) => createHash('sha256').update(String(v)).digest();
+const hasAccess = (req) => !ACCESS_CODE || timingSafeEqual(digest(req.headers['x-access-code'] || ''), digest(ACCESS_CODE));
+
 async function api(req, res, path) {
-  if (path === '/api/status' && req.method === 'GET') return send(res, 200, status());
+  if (path === '/api/status' && req.method === 'GET') return send(res, 200, { ...status(), access: ACCESS_CODE ? 'code' : 'open' });
+  if (!hasAccess(req)) return send(res, 401, { error: { code: 'access_required', message: 'Esta versión de prueba necesita un código de acceso.' } });
 
   if (path === '/api/translate' && req.method === 'POST') {
     if (limited(req, 'translate', 20)) return send(res, 429, { error: { code: 'rate_limited', message: 'Demasiadas traducciones seguidas. Espera un minuto.' } });
@@ -161,12 +168,41 @@ async function staticFile(req, res, path) {
     file = join(DIST, 'index.html'); // SPA fallback
   }
   try {
-    const buf = await readFile(file);
-    res.writeHead(200, { 'Content-Type': MIME[extname(file)] ?? 'application/octet-stream', 'Cache-Control': file.includes('/assets/') ? 'public, max-age=31536000, immutable' : 'no-cache' });
-    res.end(buf);
+    const st = await stat(file);
+    const type = MIME[extname(file)] ?? 'application/octet-stream';
+    const headers = {
+      'Content-Type': type,
+      'X-Content-Type-Options': 'nosniff',
+      // Hashed build files never change; everything else (index.html, sw.js, manifest) is revalidated.
+      'Cache-Control': file.includes('/assets/') ? 'public, max-age=31536000, immutable' : 'no-cache',
+      Vary: 'Accept-Encoding',
+    };
+    if (file.endsWith('sw.js')) headers['Service-Worker-Allowed'] = '/';
+    const { body, encoding } = await compressed(file, st.mtimeMs, type, String(req.headers['accept-encoding'] || ''));
+    if (encoding) headers['Content-Encoding'] = encoding;
+    headers['Content-Length'] = String(body.length);
+    res.writeHead(200, headers);
+    res.end(req.method === 'HEAD' ? undefined : body);
   } catch {
     send(res, 404, { error: { code: 'not_built', message: 'No hay build: ejecuta "npm run build" o usa "npm run dev".' } });
   }
+}
+
+/** Text files are sent compressed (brotli or gzip), compressed once and kept in memory. */
+const COMPRESSIBLE = /^(text\/|application\/(json|manifest\+json|javascript)|image\/svg)/;
+const zipCache = new Map(); // `${file}:${mtime}:${enc}` -> Buffer
+async function compressed(file, mtime, type, accept) {
+  const raw = await readFile(file);
+  if (!COMPRESSIBLE.test(type) || raw.length < 1024) return { body: raw, encoding: null };
+  const enc = /\bbr\b/.test(accept) ? 'br' : /\bgzip\b/.test(accept) ? 'gzip' : null;
+  if (!enc) return { body: raw, encoding: null };
+  const key = `${file}:${mtime}:${enc}`;
+  let body = zipCache.get(key);
+  if (!body) {
+    body = enc === 'br' ? brotliCompressSync(raw, { params: { [zlib.BROTLI_PARAM_QUALITY]: 10 } }) : gzipSync(raw, { level: 9 });
+    zipCache.set(key, body);
+  }
+  return { body, encoding: enc };
 }
 
 const server = createServer(async (req, res) => {
@@ -176,7 +212,7 @@ const server = createServer(async (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Vary', 'Origin');
     if (req.method === 'OPTIONS') {
-      res.writeHead(204, { 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Max-Age': '86400' });
+      res.writeHead(204, { 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type, X-Access-Code', 'Access-Control-Max-Age': '86400' });
       return res.end();
     }
   }

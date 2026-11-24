@@ -1,17 +1,19 @@
-# Render Blueprint: one click deploys the SIDEYE server (web app + /api for the iOS app).
-# Render → New → Blueprint → pick this repository. Then fill in the two keys when asked.
+# Render Blueprint: deploys SIDEYE (web app/PWA + AI server) with HTTPS on <name>.onrender.com.
+# Render → New → Blueprint → choose this repository and branch. Fill in the keys when asked.
 services:
   - type: web
     name: sideye
     runtime: node
-    plan: free
+    plan: free # "starter" (7 USD/month) keeps it awake; free sleeps after 15 min idle
     buildCommand: npm ci && npm run build
     startCommand: npm run serve
     healthCheckPath: /api/status
     envVars:
       - key: NODE_VERSION
         value: "22"
-      - key: OPENAI_API_KEY
+      - key: OPENAI_API_KEY # voice (TTS) and pronunciation (speech to text); also translates if there is no Anthropic key
         sync: false
-      - key: ANTHROPIC_API_KEY
+      - key: ANTHROPIC_API_KEY # translator with Claude (optional but recommended)
+        sync: false
+      - key: ACCESS_CODE # optional: code testers type once, so strangers with the link cannot spend your API credit
         sync: false

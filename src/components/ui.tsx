@@ -31,6 +31,9 @@ const PATHS: Record<string, ReactNode> = {
   mic: <><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5.5 11a6.5 6.5 0 0013 0M12 17.5V21" /></>,
   stop: <rect x="6.5" y="6.5" width="11" height="11" rx="2" />,
   chat: <path d="M4 5h16v11H9l-5 4z" />,
+  download: <><path d="M12 4v11M7.5 10.5L12 15l4.5-4.5" /><path d="M5 19.5h14" /></>,
+  share: <><path d="M12 3.5v11M8 7.5l4-4 4 4" /><path d="M7.5 11H6a1.5 1.5 0 00-1.5 1.5v6A1.5 1.5 0 006 20h12a1.5 1.5 0 001.5-1.5v-6A1.5 1.5 0 0018 11h-1.5" /></>,
+  plusbox: <><rect x="4" y="4" width="16" height="16" rx="3.5" /><path d="M12 8.5v7M8.5 12h7" /></>,
   refresh: <><path d="M20 11a8 8 0 00-14.5-4.5L4 8.5" /><path d="M4 4v4.5h4.5" /><path d="M4 13a8 8 0 0014.5 4.5L20 15.5" /><path d="M20 20v-4.5h-4.5" /></>,
 };
 

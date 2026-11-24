@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { Highlight } from '../components/ExpressionCard';
 import { Logo } from '../components/Logo';
+import { InstallCard } from '../components/Pwa';
 import { Poster } from '../components/Poster';
 import { Bar, Btn, Icon } from '../components/ui';
 import { PACKS, plain } from '../data/content';
@@ -58,6 +59,8 @@ export function Today() {
           <h1 className="display">{greeting(s.name)}</h1>
         </div>
       </header>
+
+      <InstallCard compact />
 
       <div className="level-strip">
         <span>

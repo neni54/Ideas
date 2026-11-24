@@ -12,6 +12,8 @@ import { useEffect } from 'react';
 import { useGame } from '../store/game';
 import { STATUS_LABEL, statusOf } from '../engine/gate';
 import { weekDays } from './Today';
+import { InstallCard } from '../components/Pwa';
+import { Backup } from '../components/Backup';
 
 /* ───────────── Phrasebook ───────────── */
 
@@ -255,6 +257,8 @@ export function Profile() {
             <i />
           </label>
           <ServiceStatus />
+          <InstallCard />
+          <Backup />
           <button className="danger-link" onClick={() => setConfirm(true)}>
             Borrar todo el progreso
           </button>

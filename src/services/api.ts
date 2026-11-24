@@ -42,10 +42,41 @@ const NO_SERVER = API_BASE
   ? 'No se puede conectar con el servidor de SIDEYE. Revisa tu conexión e inténtalo de nuevo.'
   : 'No hay servidor de IA en esta versión. Ejecuta la app con "npm start" (o "npm run dev" + "npm run dev:api") y configura las claves en .env.';
 
-async function call(path: string, init: RequestInit): Promise<Response> {
+/* ───── optional access code (server ACCESS_CODE) ───── */
+const CODE_KEY = 'sideye-access-code';
+const readCode = () => {
+  try {
+    return localStorage.getItem(CODE_KEY) || '';
+  } catch {
+    return '';
+  }
+};
+let asking: Promise<boolean> | null = null;
+/** Asks once for the code, even if several requests fail at the same time. */
+function askForCode(): Promise<boolean> {
+  if (!asking) {
+    asking = Promise.resolve().then(() => {
+      const code = window.prompt('Esta versión de prueba de SIDEYE tiene código de acceso.\nEscríbelo para activar la voz y el traductor:')?.trim();
+      if (code)
+        try {
+          localStorage.setItem(CODE_KEY, code);
+        } catch {
+          /* private mode */
+        }
+      setTimeout(() => (asking = null), 1000);
+      return !!code;
+    });
+  }
+  return asking;
+}
+
+async function call(path: string, init: RequestInit, retried = false): Promise<Response> {
   let res: Response;
   try {
-    res = await fetch(API_BASE + path, init);
+    const headers = new Headers(init.headers);
+    const code = readCode();
+    if (code) headers.set('X-Access-Code', code);
+    res = await fetch(API_BASE + path, { ...init, headers });
   } catch (e) {
     if ((e as Error).name === 'AbortError') throw e;
     throw new ApiError('offline', navigator.onLine === false ? 'Sin conexión a internet.' : NO_SERVER);
@@ -56,6 +87,7 @@ async function call(path: string, init: RequestInit): Promise<Response> {
   try {
     const data = await res.json();
     if (data?.error) ({ code, message } = data.error);
+    if (code === 'access_required' && !retried && (await askForCode())) return call(path, init, true);
   } catch {
     // Static hosting answers /api/* with HTML (or 404): there is no AI server behind it.
     if (res.status === 404 || res.status === 405) {
