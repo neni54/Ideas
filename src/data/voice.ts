@@ -22,7 +22,7 @@ const LINES = {
     'You caught the sarcasm. Impressive.',
     "Tone detected. Nobody's fooling you.",
     'You heard the eye-roll. Good ears.',
-    'Subtext: received.',
+    'Side-eye: detected. Well done.',
   ],
   natural: [
     'That sounded like a local. Unsettling.',
@@ -73,9 +73,9 @@ export function say(key: VoiceKey): string {
 
 export function verdict(accuracy: number): { title: string; sub: string } {
   if (accuracy >= 1) return { title: 'Flawless. Annoyingly.', sub: 'Ni un fallo. Ya puedes ir a cenas con nativos.' };
-  if (accuracy >= 0.85) return { title: 'Smooth.', sub: 'Pillas el subtexto. Se nota.' };
+  if (accuracy >= 0.85) return { title: 'Smooth.', sub: 'Pillas lo que no se dice. Se nota.' };
   if (accuracy >= 0.7) return { title: "You'd survive a dinner party.", sub: 'Buen nivel. Un par de matices se te escaparon.' };
-  if (accuracy >= 0.5) return { title: 'Getting there.', sub: 'El subtexto empieza a asomar. Lo fallado vuelve en Memory.' };
+  if (accuracy >= 0.5) return { title: 'Getting there.', sub: 'Lo que no se dice empieza a asomar. Lo fallado vuelve en Memory.' };
   return { title: 'Rough one. That is how it sticks.', sub: 'Los errores de hoy son los aciertos de la semana que viene.' };
 }
 

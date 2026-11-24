@@ -177,8 +177,8 @@ export function Twist() {
           )}
 
           {picked !== null && (
-            <motion.section className={`subtext ${ok ? 'ok' : 'ko'}`} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-              <div className="subtext-top">
+            <motion.section className={`reveal ${ok ? 'ok' : 'ko'}`} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+              <div className="reveal-top">
                 <span className={`verdict-mark ${ok ? 'ok' : 'ko'}`}>
                   <Icon name={ok ? 'check' : 'x'} size={15} />
                 </span>
@@ -189,14 +189,14 @@ export function Twist() {
                   <small>Lo que quiere decir</small> {sc.options[sc.answer]}
                 </p>
               )}
-              <div className="label">El subtexto</div>
-              <p className="subtext-explain">{sc.explain}</p>
-              <div className="subtext-key">
+              <div className="label">Entre líneas</div>
+              <p className="reveal-explain">{sc.explain}</p>
+              <div className="reveal-key">
                 <span>“{sc.key}”</span>
                 <Speak clips={[{ text: sc.key, tone: sc.tone }]} label={sc.key} />
               </div>
               <div className="label">Otro ejemplo</div>
-              <div className="subtext-ex">
+              <div className="reveal-ex">
                 <span className="ex-en">
                   {sc.ex[0]} <Speak clips={[{ text: sc.ex[0], tone: sc.tone }]} slowButton={false} size="sm" />
                 </span>

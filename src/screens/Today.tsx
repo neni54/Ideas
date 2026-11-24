@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { Highlight } from '../components/ExpressionCard';
+import { Logo } from '../components/Logo';
 import { Poster } from '../components/Poster';
 import { Bar, Btn, Icon } from '../components/ui';
 import { PACKS, plain } from '../data/content';
@@ -44,15 +45,18 @@ export function Today() {
 
   return (
     <div className="screen today">
+      <div className="brandbar">
+        <Logo size={24} />
+        <button className={`streak-pill ${s.lastPlayDay === today ? 'lit' : ''}`} onClick={() => s.go('profile')} aria-label={`Racha de ${s.streak} días`}>
+          <Icon name="flame" size={16} />
+          <b>{s.streak}</b>
+        </button>
+      </div>
       <header className="today-head">
         <div>
           <div className="eyebrow">{dateLabel}</div>
           <h1 className="display">{greeting(s.name)}</h1>
         </div>
-        <button className={`streak-pill ${s.lastPlayDay === today ? 'lit' : ''}`} onClick={() => s.go('profile')} aria-label={`Racha de ${s.streak} días`}>
-          <Icon name="flame" size={16} />
-          <b>{s.streak}</b>
-        </button>
       </header>
 
       <div className="level-strip">

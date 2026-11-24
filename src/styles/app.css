@@ -1,4 +1,4 @@
-/* Subtext — editorial dark. One deliberate night palette in both system themes.
+/* SIDEYE — editorial dark. One deliberate night palette in both system themes.
    Layout: single mobile column, magazine hierarchy (eyebrow → serif headline → body). */
 :root {
   --bg: #11100e;
@@ -519,14 +519,108 @@ kbd {
   padding-bottom: calc(env(safe-area-inset-bottom) + 24px);
   gap: 26px;
 }
-.wordmark {
-  font-family: var(--serif);
-  font-size: 24px;
+/* ───── SIDEYE brand ───── */
+.logo {
+  --brand-font: 'Anton', 'Impact', 'Haettenschweiler', 'Arial Narrow Bold', sans-serif;
+  display: inline-flex;
+  align-items: flex-end;
+  font-family: var(--brand-font);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0.035em;
+  color: var(--cream);
+  text-transform: uppercase;
+  user-select: none;
+}
+.logo-eye {
+  position: relative;
+}
+/* The glance: a hairline with the point pushed to the right corner. */
+.logo-eye::before {
+  content: '';
+  position: absolute;
+  left: 0.06em;
+  right: 0.36em;
+  top: -0.2em;
+  height: 0.055em;
+  min-height: 1px;
+  border-radius: 1em;
+  background: currentColor;
+  opacity: 0.55;
+}
+.logo-eye::after {
+  content: '';
+  position: absolute;
+  right: 0.06em;
+  top: -0.28em;
+  width: 0.22em;
+  height: 0.22em;
+  border-radius: 50%;
+  background: var(--wine-2);
+  animation: glance 7s ease-in-out infinite;
+}
+@keyframes glance {
+  0%, 82%, 100% {
+    transform: translateX(0);
+  }
+  88% {
+    transform: translateX(-0.5em);
+  }
+  94% {
+    transform: translateX(-0.5em);
+  }
+}
+.slogan {
+  font-family: 'Anton', 'Impact', 'Arial Narrow Bold', sans-serif;
+  font-weight: 400;
+  font-size: clamp(44px, 12.5vw, 60px);
+  line-height: 0.98;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: var(--cream);
+  text-wrap: balance;
+}
+.slogan em {
+  font-style: normal;
+  color: var(--wine-2);
+}
+.slogan-sm {
+  font-family: 'Anton', 'Impact', 'Arial Narrow Bold', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 13px;
+  color: var(--muted);
+}
+.ob-es {
+  font-size: 14px;
+}
+.brandbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 4px;
+}
+.brand-foot {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 26px 0 8px;
+  border-top: 1px solid var(--line);
+}
+.brand-tagline {
+  font-family: 'Anton', 'Impact', 'Arial Narrow Bold', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 18px;
   color: var(--cream);
 }
-.wordmark span {
-  font-style: italic;
-  color: var(--wine-2);
+.brand-foot .muted {
+  font-size: 13.5px;
+  max-width: 38ch;
+}
+.loading-save .slogan-sm {
+  text-align: center;
 }
 .ob-step {
   flex: 1;
@@ -2509,6 +2603,9 @@ kbd {
   }
 }
 @media (prefers-reduced-motion: reduce) {
+  .logo-eye::after {
+    animation: none;
+  }
   *,
   *::before,
   *::after {
@@ -3283,7 +3380,7 @@ kbd {
 .reading.dim {
   opacity: 0.4;
 }
-.subtext {
+.reveal {
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -3292,23 +3389,23 @@ kbd {
   border: 1px solid var(--line-2);
   background: var(--bg-2);
 }
-.subtext.ok {
+.reveal.ok {
   border-color: rgba(181, 183, 124, 0.45);
 }
-.subtext.ko {
+.reveal.ko {
   border-color: rgba(194, 90, 107, 0.5);
 }
-.subtext-top {
+.reveal-top {
   display: flex;
   align-items: center;
   gap: 10px;
 }
-.subtext-explain {
+.reveal-explain {
   font-size: 15px;
   line-height: 1.55;
   color: var(--text);
 }
-.subtext-key {
+.reveal-key {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -3320,7 +3417,7 @@ kbd {
   font-size: 19px;
   color: var(--cream);
 }
-.subtext-ex {
+.reveal-ex {
   display: flex;
   flex-direction: column;
   gap: 2px;

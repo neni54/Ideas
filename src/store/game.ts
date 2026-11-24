@@ -525,6 +525,8 @@ export const useGame = create<GameState>()(
       } as GameState;
     },
     {
+      // Internal storage key from the app's previous name. Do NOT rename: it holds every player's
+      // progress (browser and cloud copies). It is never shown to users.
       name: 'subtext-save-v1',
       storage: createJSONStorage(() => cloudStorage),
       partialize: (s) => {

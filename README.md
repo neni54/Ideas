@@ -1,6 +1,10 @@
-# Subtext
+# SIDEYE
 
-*English, between the lines.* Una app para aprender el inglés que no viene en los libros:
+**YOU KNOW THE WORDS. NOW GET THE MEANING.**
+
+> Learn English through culture, sarcasm, real conversations and everything that gets lost in translation.
+
+Una app para aprender el inglés que no viene en los libros:
 sarcasmo, indirectas, slang, citas, oficina y conversaciones reales. Para adultos, de B1 a C1.
 
 > Diseño, contenido, mecánicas y qué cambió respecto a la v1: [`docs/DISENO.md`](docs/DISENO.md)

@@ -145,7 +145,7 @@ export function Translate() {
       <Btn wide onClick={() => run()} disabled={!text.trim() || loading}>
         {loading ? (
           <>
-            <span className="spin spin-dark" /> Leyendo el subtexto…
+            <span className="spin spin-dark" /> Leyendo entre líneas…
           </>
         ) : (
           <>

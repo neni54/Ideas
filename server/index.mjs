@@ -1,4 +1,4 @@
-// Subtext server: serves the built app and the AI endpoints. No API key ever reaches the browser.
+// SIDEYE server: serves the built app and the AI endpoints. No API key ever reaches the browser.
 //   node --env-file-if-exists=.env server/index.mjs
 import { createHash } from 'node:crypto';
 import { createServer } from 'node:http';
@@ -177,7 +177,7 @@ const server = createServer(async (req, res) => {
 
 server.listen(PORT, () => {
   const s = status();
-  console.log(`Subtext server on http://localhost:${PORT}`);
+  console.log(`SIDEYE server on http://localhost:${PORT}`);
   console.log(`  translate: ${s.translate.ready ? `ready (${s.translate.provider})` : `NOT CONFIGURED - set ${s.translate.missing}`}`);
   console.log(`  voice:     ${s.tts.ready ? `ready (${s.tts.model})` : `NOT CONFIGURED - set ${s.tts.missing}`}`);
   console.log(`  speech recognition: ${s.stt.ready ? `ready (${s.stt.model})` : `NOT CONFIGURED - set ${s.stt.missing}`}`);

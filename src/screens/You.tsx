@@ -6,6 +6,7 @@ import { dayKey } from '../engine/date';
 import { levelFromXp } from '../engine/progression';
 import { masteredCount } from '../engine/srs';
 import { useServices } from '../services/api';
+import { BRAND, Logo } from '../components/Logo';
 import { useCloud, watchTesters, type TesterRow } from '../services/cloud';
 import { useEffect } from 'react';
 import { useGame } from '../store/game';
@@ -259,6 +260,12 @@ export function Profile() {
           </button>
         </div>
       </section>
+
+      <footer className="brand-foot">
+        <Logo size={30} />
+        <p className="brand-tagline">{BRAND.tagline}</p>
+        <p className="muted">{BRAND.message}</p>
+      </footer>
 
       <Sheet open={confirm} onClose={() => setConfirm(false)}>
         <p className="serif-lg">Start over?</p>

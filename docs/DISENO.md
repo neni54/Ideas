@@ -1,4 +1,6 @@
-# Subtext — Documento de diseño (v2)
+# SIDEYE — Documento de diseño
+
+> Antes llamada *Subtext* (y, en su primera versión, *Lumora*).
 
 > *English, between the lines.* Una app para adultos de 25 a 50 años que ya se defienden
 > en inglés (B1–C1) y quieren entender a los nativos de verdad: el sarcasmo, las indirectas,
@@ -190,3 +192,22 @@ Dos juegos independientes, con contenido escrito y audio real; sin chat ni perso
 las instrucciones. `gpt-4o-mini-tts` las acepta por petición, pero no se ha podido escuchar el
 resultado real en este entorno (sin clave válida). Si alguna interpretación sonara demasiado
 parecida, se ajusta su texto en `TONES` sin tocar el resto.
+
+---
+
+## 10. Marca: SIDEYE (v2.4)
+
+- **Nombre:** SIDEYE. **Eslogan:** "YOU KNOW THE WORDS. NOW GET THE MEANING."
+  **Mensaje secundario:** "Learn English through culture, sarcasm, real conversations and
+  everything that gets lost in translation." (constantes en `src/components/Logo.tsx`).
+- **Logotipo** (`<Logo />`): tipográfico, mayúsculas condensadas (Anton). Sobre "EYE", una línea
+  fina con un punto burdeos desplazado a la derecha: una mirada de reojo abstracta. Cada pocos
+  segundos el punto mira a un lado (se desactiva con "reducir movimiento"). Las letras usan
+  `currentColor`, así que funciona sobre fondo oscuro y claro. El favicon repite la línea y el punto.
+- **Dónde aparece:** bienvenida (logotipo + eslogan como titular), pantalla de carga, cabecera de
+  Hoy y pie de Perfil. El resto de pantallas no lleva eslóganes.
+- **Tipografía:** Anton solo para la marca y el eslogan; Instrument Serif sigue en los titulares
+  editoriales, Manrope en la interfaz y IBM Plex Mono en las etiquetas. Paleta sin cambios
+  (carbón, crema, burdeos, oliva).
+- **Compatibilidad:** la clave interna de guardado sigue siendo `subtext-save-v1` (navegador y
+  nube) para no perder el progreso de nadie. No es visible para el usuario.

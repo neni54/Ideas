@@ -226,8 +226,8 @@ export function VoiceActing() {
         </div>
 
         {picked && (
-          <motion.section className={`subtext ${ok ? 'ok' : 'ko'}`} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-            <div className="subtext-top">
+          <motion.section className={`reveal ${ok ? 'ok' : 'ko'}`} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+            <div className="reveal-top">
               <span className={`verdict-mark ${ok ? 'ok' : 'ko'}`}>
                 <Icon name={ok ? 'check' : 'x'} size={15} />
               </span>
@@ -237,7 +237,7 @@ export function VoiceActing() {
               <small>Intención</small> {r.delivery.intent} · {r.delivery.es}
             </p>
             <div className="label">Por qué el tono cambia el significado</div>
-            <p className="subtext-explain">{r.delivery.explain}</p>
+            <p className="reveal-explain">{r.delivery.explain}</p>
             <p className="note">{r.line.context}</p>
             <div className="label">Compara las interpretaciones</div>
             <ul className="takes">

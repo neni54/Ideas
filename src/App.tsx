@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { ExpressionSheet } from './components/ExpressionCard';
 import { AudioBar } from './components/Speak';
+import { Logo } from './components/Logo';
 import { Translate } from './screens/Translate';
 import { Twist } from './screens/Twist';
 import { VoiceActing } from './screens/VoiceActing';
@@ -65,9 +66,8 @@ export default function App() {
     return (
       <div className="app">
         <div className="screen center-screen loading-save">
-          <div className="wordmark">
-            Sub<span>text</span>
-          </div>
+          <Logo size={44} />
+          <p className="slogan-sm">You know the words. Now get the meaning.</p>
           <p className="muted">
             <span className="spin" /> Cargando tu progreso…
           </p>
