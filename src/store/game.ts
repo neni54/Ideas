@@ -11,7 +11,7 @@ import type { Challenge } from '../engine/challenges';
 import { weeklyPack } from '../engine/session';
 import { LEARNING_RUNS, afterReview, afterSession, gateFor, nextLocalMidnight, settle, type ReviewLock } from '../engine/gate';
 
-export type Screen = 'today' | 'library' | 'games' | 'phrases' | 'translate' | 'profile' | 'play' | 'quickfire' | 'memory' | 'twist' | 'voice' | 'results' | 'speak';
+export type Screen = 'today' | 'library' | 'games' | 'phrases' | 'translate' | 'profile' | 'play' | 'quickfire' | 'memory' | 'twist' | 'voice' | 'results';
 export type RunMode = Challenge['mode'];
 export type RunKind = Run['kind'];
 

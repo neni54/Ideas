@@ -31,21 +31,8 @@ if (canBrowserSpeak()) loadVoices().catch(() => undefined);
 
 const GOOD_US = /Samantha|Ava|Allison|Susan|Zoe|Nicky|Siri|Natural|Neural|Enhanced|Premium|Google US|Aria|Jenny|Guy/i;
 
-/** Voice chosen in SIDEYE SPEAK settings (stored on this device), if any. */
-function preferred(): { voiceId: string | null; rate: number } {
-  try {
-    const st = JSON.parse(localStorage.getItem('sideye-speak-v1') || '{}')?.state ?? {};
-    return { voiceId: typeof st.voiceId === 'string' ? st.voiceId : null, rate: typeof st.rate === 'number' ? st.rate : 0.95 };
-  } catch {
-    return { voiceId: null, rate: 0.95 };
-  }
-}
-
-/** Best English voice: the user's chosen voice, else a good en-US voice, then any en-US, then any English. */
+/** Best English voice: a good en-US voice, then any en-US, then any English. null = let the device choose. */
 export function pickEnglishVoice(list: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null {
-  const pref = preferred().voiceId;
-  const mine = pref ? list.find((v) => v.voiceURI === pref) : undefined;
-  if (mine) return mine;
   const en = list.filter((v) => /^en([-_]|$)/i.test(v.lang));
   const us = en.filter((v) => /^en[-_]US$/i.test(v.lang));
   return us.find((v) => GOOD_US.test(v.name) && v.localService !== false) ?? us.find((v) => GOOD_US.test(v.name)) ?? us.find((v) => v.default) ?? us[0] ?? en[0] ?? null;
@@ -71,15 +58,9 @@ export function resumeBrowserSpeech() {
  * Speaks `text` in English with the device voice. Resolves when it finishes (or is stopped).
  * Call it from a tap: iOS only lets speech start after a user gesture.
  */
-export async function browserSpeak(
-  text: string,
-  slow: boolean,
-  hooks: { onStart?: () => void; onBoundary?: (charIndex: number) => void } = {},
-  opts: { voiceId?: string; rate?: number } = {},
-): Promise<void> {
+export async function browserSpeak(text: string, slow: boolean, hooks: { onStart?: () => void } = {}): Promise<void> {
   if (!canBrowserSpeak()) throw new NativeVoiceError('Este navegador no puede leer en voz alta. Prueba en Safari (iPhone) o Chrome (Android).');
-  const list = await loadVoices();
-  const voice = (opts.voiceId ? list.find((v) => v.voiceURI === opts.voiceId) : undefined) ?? pickEnglishVoice(list);
+  const voice = pickEnglishVoice(await loadVoices());
   if (speechSynthesis.speaking || speechSynthesis.pending) {
     speechSynthesis.cancel();
     // A tick after cancel(): speaking immediately is silently dropped by some engines.
@@ -90,8 +71,7 @@ export async function browserSpeak(
     // Without a voice object, lang alone makes the device use its default American English voice.
     if (voice) u.voice = voice;
     u.lang = voice?.lang || 'en-US';
-    const base = opts.rate ?? preferred().rate;
-    u.rate = slow ? Math.min(0.7, base) : base;
+    u.rate = slow ? 0.7 : 0.95;
     let settled = false;
     const end = (fn: () => void) => {
       if (settled) return;
@@ -102,7 +82,6 @@ export async function browserSpeak(
     // iOS sometimes never fires onend; never leave the player stuck in "playing".
     const watchdog = window.setTimeout(() => end(resolve), 4000 + (text.length * 110) / u.rate);
     u.onstart = () => hooks.onStart?.();
-    u.onboundary = (e) => hooks.onBoundary?.(e.charIndex);
     u.onend = () => end(resolve);
     u.onerror = (e) =>
       end(() =>

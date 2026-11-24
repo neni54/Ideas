@@ -3,8 +3,6 @@ import { useEffect, useState } from 'react';
 import { ExpressionSheet } from './components/ExpressionCard';
 import { AudioBar } from './components/Speak';
 import { UpdateBanner } from './components/Pwa';
-import { SpeakScreen } from './screens/Speak';
-import { useSpeakNav } from './speak/player';
 import { Logo } from './components/Logo';
 import { Translate } from './screens/Translate';
 import { Twist } from './screens/Twist';
@@ -26,7 +24,6 @@ export default function App() {
   const screen = useGame((s) => s.screen);
   const newDay = useGame((s) => s.newDay);
   const runId = useGame((s) => s.runId);
-  const speakView = useSpeakNav((s) => s.view.name);
   const [hydrated, setHydrated] = useState(() => useGame.persist.hasHydrated());
 
   useEffect(() => {
@@ -86,7 +83,7 @@ export default function App() {
       </div>
     );
 
-  const immersive = ['play', 'quickfire', 'memory', 'twist', 'voice', 'results'].includes(screen) || (screen === 'speak' && (speakView === 'practice' || speakView === 'chat'));
+  const immersive = ['play', 'quickfire', 'memory', 'twist', 'voice', 'results'].includes(screen);
   const views: Record<string, JSX.Element> = {
     today: <Today />,
     library: <Library />,
@@ -100,13 +97,12 @@ export default function App() {
     twist: <Twist key={runId} />,
     voice: <VoiceActing key={runId} />,
     results: <Results />,
-    speak: <SpeakScreen />,
   };
 
   return (
     <div className={`app ${immersive ? 'immersive' : ''} ${screen === 'voice' ? 'on-voice' : ''}`}>
       <AnimatePresence mode="wait">
-        <motion.div key={screen + (immersive ? runId : '') + (screen === 'speak' ? speakView : '')} className="view" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
+        <motion.div key={screen + (immersive ? runId : '')} className="view" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
           {views[screen]}
         </motion.div>
       </AnimatePresence>
