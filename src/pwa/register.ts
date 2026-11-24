@@ -35,6 +35,8 @@ export const usePwa = create<PwaState>(() => ({
 let deferredPrompt: BeforeInstallPromptEvent | null = null;
 let waiting: ServiceWorker | null = null;
 
+/** Single-file build published as a claude.ai Artifact: no install, no service worker, no downloads. */
+export const IN_ARTIFACT = import.meta.env.MODE === 'single';
 export const APP_VERSION = __APP_VERSION__;
 export const BUILD_TIME = __BUILD_TIME__;
 

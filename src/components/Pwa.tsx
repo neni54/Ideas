@@ -1,13 +1,14 @@
 // Install and update UI for the web app (PWA).
 import { AnimatePresence, motion } from 'framer-motion';
 import { useState } from 'react';
-import { APP_VERSION, BUILD_TIME, applyUpdate, promptInstall, usePwa } from '../pwa/register';
+import { APP_VERSION, BUILD_TIME, IN_ARTIFACT, applyUpdate, promptInstall, usePwa } from '../pwa/register';
 import { Btn, Icon } from './ui';
 
 /** "Nueva versión disponible": appears when a new deploy has been downloaded in the background. */
 export function UpdateBanner() {
   const ready = usePwa((s) => s.updateReady);
   const [later, setLater] = useState(false);
+  if (IN_ARTIFACT) return null;
   return (
     <AnimatePresence>
       {ready && !later && (
@@ -47,6 +48,7 @@ export function InstallCard({ compact = false }: { compact?: boolean }) {
   const { standalone, canPrompt, platform, iosSafari } = usePwa();
   const [hidden, setHidden] = useState(dismissed);
   const [installing, setInstalling] = useState(false);
+  if (IN_ARTIFACT) return null;
   if (standalone) return compact ? null : <p className="install-done">Instalada en tu pantalla de inicio · v{APP_VERSION}</p>;
   if (compact && (hidden || platform === 'other')) return null;
 

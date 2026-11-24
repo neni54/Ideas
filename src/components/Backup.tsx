@@ -2,6 +2,7 @@
 // to another device, from Safari to the installed iPhone app, or keep a copy before deleting the app.
 import { useRef, useState } from 'react';
 import { useGame } from '../store/game';
+import { IN_ARTIFACT } from '../pwa/register';
 import { Btn, Icon } from './ui';
 
 const SAVE_KEY = 'subtext-save-v1'; // the store's persist key (see store/game.ts)
@@ -15,6 +16,10 @@ function readSave(): string | null {
 }
 
 export function Backup() {
+  return IN_ARTIFACT ? null : <BackupInner />;
+}
+
+function BackupInner() {
   const name = useGame((s) => s.name);
   const input = useRef<HTMLInputElement>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
