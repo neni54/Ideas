@@ -7,6 +7,7 @@ import { dueIds } from '../engine/srs';
 import { packMastery, playerLevel, useGame, useGate, type RunMode } from '../store/game';
 import { packHasNew } from '../engine/session';
 import { TWIST_COLLECTIONS } from '../data/twists';
+import { SpeakEntry } from '../components/SpeakEntry';
 
 /* ───────────── Library ───────────── */
 
@@ -127,6 +128,7 @@ export function Games() {
       <h1 className="display">Same phrases. Eleven ways to get them wrong.</h1>
       <p className="muted lead">Cada modo entrena una habilidad distinta. Las expresiones salen de tus colecciones abiertas.</p>
       {!gate.canLearnNew && <p className="locked-note">Modo repaso: hoy los juegos usan solo expresiones que ya has visto. El contenido nuevo vuelve {gate.state === 'review-first' ? 'al terminar el repaso de ayer' : 'mañana'}.</p>}
+      <SpeakEntry />
       <div className="feature-row">
         <button className="feature" onClick={() => s.start({ kind: 'quickfire' })}>
           <span className="feature-glyph">⚡︎</span>

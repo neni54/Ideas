@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { Highlight } from '../components/ExpressionCard';
 import { Logo } from '../components/Logo';
 import { InstallCard } from '../components/Pwa';
+import { SpeakEntry } from '../components/SpeakEntry';
 import { Poster } from '../components/Poster';
 import { Bar, Btn, Icon } from '../components/ui';
 import { PACKS, plain } from '../data/content';
@@ -122,6 +123,8 @@ export function Today() {
           </>
         )}
       </motion.section>
+
+      <SpeakEntry compact />
 
       <section className="potd">
         <div className="eyebrow">Frase del día · {potd.level}</div>
