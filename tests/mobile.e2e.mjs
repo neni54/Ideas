@@ -172,7 +172,7 @@ const sel_delay = (label) => (label === 'Quick Fire' ? 60 : 220);
 async function closeSheets(page) {
   for (let i = 0; i < 3; i++) {
     const seguir = page.locator('.sheet .btn-primary', { hasText: /Seguir/ });
-    if (await isVisible(seguir)) { await seguir.click(); await page.waitForTimeout(400); } else break;
+    if (await isVisible(seguir)) { await seguir.first().click({ timeout: 3000 }).catch(() => {}); await page.waitForTimeout(400); } else break;
   }
 }
 
@@ -206,7 +206,8 @@ async function runDevice(profile) {
   const errors = [];
   const played = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  page.on('console', (m) => m.type() === 'error' && !/favicon|fonts\.g/.test(m.text()) && errors.push(m.text()));
+  // ERR_INTERNET_DISCONNECTED only happens during the deliberate offline check (the app keeps working).
+  page.on('console', (m) => m.type() === 'error' && !/favicon|fonts\.g|ERR_INTERNET_DISCONNECTED/.test(m.text()) && errors.push(`${m.text()} @ ${m.location()?.url ?? ''}`));
 
   try {
     await onboard(page);
@@ -260,7 +261,7 @@ async function runDevice(profile) {
           } else if (r === 'locked') notes.push(`[${dev}] ${title}: hit the 3-mistake lock before the end (expected with random answers)`);
           else if (r === 'left') fail(dev, `${title}: left the game without a results screen`);
         } catch (e) {
-          fail(dev, `${title}: ${e.message.split('\n')[0]}`);
+          fail(dev, `${title}: ${e.message.split('\n').slice(0, 8).join(' ⏎ ')}`);
           await shot(gp, dev, `crash-${slug(title)}`).catch(() => {});
         }
         await gctx.close();
